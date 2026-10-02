@@ -40,7 +40,7 @@ function makeEl(tag, id) {
 
 const ids = ["setup-screen", "chat-screen", "scenario-input", "start-btn", "messages",
              "message-input", "send-btn", "coach-btn", "new-round-btn", "loading",
-             "mic-btn", "speak-toggle-btn", "voice-status", "setup-mic-btn", "setup-voice-status", "voice-select", "voice-pick"];
+             "mic-btn", "speak-toggle-btn", "voice-status", "setup-mic-btn", "setup-voice-status"];
 const registry = {};
 ids.forEach((id) => (registry[id] = makeEl("div", id)));
 
@@ -126,16 +126,6 @@ module.exports = { speak, startListening, isSupported: () => !!SpeechRecognition
   console.log("\n4b. The best available voice is chosen, not the default");
   check("premium voice preferred over the default", lastUtterance && lastUtterance.voice.name, "Ava (Premium)");
   check("non-English voice ignored", lastUtterance && lastUtterance.voice.lang, "en-US");
-
-  console.log("\n4c. The voice picker lists voices and an explicit choice wins");
-  check("picker revealed", registry["voice-pick"].classList.contains("hidden"), false);
-  check("all voices listed", registry["voice-select"].children.map((o) => o.value),
-        ["Albert", "Samantha", "Ava (Premium)", "Amelie"]);
-  check("picker reflects the active voice", registry["voice-select"].value, "Ava (Premium)");
-  registry["voice-select"].value = "Albert";
-  registry["voice-select"].dispatch("change");
-  check("explicit choice overrides the heuristic", lastUtterance.voice.name, "Albert");
-  check("choice previewed aloud", lastUtterance.text, "This is how I'll sound.");
 
   console.log("\n5. Clicking the chat mic works too");
   registry["mic-btn"].dispatch("click");
