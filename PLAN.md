@@ -6,17 +6,33 @@
 - [x] Cloud Run + Firestore APIs pre-enabled.
 - [x] System prompt drafted, tested, and refined in AI Studio across multiple scenarios + multi-turn exchanges.
 - [x] Skeleton app built and in repo (index.html, style.css, app.js, firebase.json, README.md).
-- [ ] API key NOT yet inserted into app.js — placeholder "YOUR_API_KEY_HERE" still there.
+- [x] API key inserted — lives in `public/config.js`, which is **gitignored** (template: `config.example.js`). Verified absent from git history.
 - [x] app.js model name + grounding syntax VERIFIED against Gemini API docs: `gemini-3.1-flash-lite` is a real stable endpoint and supports Search grounding; grounding tool field corrected to `google_search: {}` (snake_case, as documented for `:generateContent`). Response parsing + multi-turn history also fixed for Gemini 3 (multi-part replies, thought signatures).
-- [ ] Not yet tested locally in a browser.
-- [ ] Not yet deployed.
-- [ ] Cloud credit coupon not yet received/redeemed.
+- [ ] Not yet tested locally in a browser. Serve with `python3 -m http.server 8777` from `public/`, then open http://localhost:8777/index.html. (No browser automation available to the assistant — this one needs a human.)
+- [ ] Not yet deployed. Firebase CLI v15 is now installed but **not logged in** — run `firebase login` (interactive), then `firebase use --add` to write `.firebaserc`.
+- [ ] Cloud credits: billing account linked to the project, but **Search grounding still returns 429**.
+
+## ⚠️ OPEN BLOCKER: Search grounding returns 429
+Confirmed by direct API calls, repeatedly, over ~40 minutes:
+- `gemini-3.1-flash-lite` **ungrounded** → 200 OK. Key is valid, model name is right.
+- Same model **with `google_search`** → 429 RESOURCE_EXHAUSTED. Same for other models.
+- Both `google_search` and `googleSearch` behave identically, so field spelling is not the cause.
+
+Cause: Search grounding draws on a **separate quota that requires the project on a paid
+tier**. Linking a Cloud billing account is NOT sufficient — the upgrade has to be completed
+through **"Set up billing" in AI Studio** (https://aistudio.google.com/apikey) for the project
+that owns this key. Tier changes then apply within ~10 minutes. Watch out: that flow may ask
+for a Prepay minimum — use the event billing account, never a personal card.
+
+Impact is contained: the app falls back to an ungrounded round with a visible notice, so the
+demo works either way. But grounding is the Track Application argument, so this stays priority #1.
 - [ ] Organizer questions (pre-event code allowance, exact ShipYard requirements) — resolve ASAP this morning if not already answered; don't block building on this, just note the answer once known.
 
 ## FIRST THING TO DO RIGHT NOW
-1. Open AI Studio → "Get code" panel → compare exact model name + grounding syntax against app.js, fix if different.
-2. Paste real API key into app.js.
-3. Open index.html directly in a browser, try one message, confirm a real Gemini response comes back before touching anything else.
+1. Complete "Set up billing" in AI Studio for the key's project (see blocker above) — unblocks grounding.
+2. `firebase login`, then `firebase use --add` to pick the project and write `.firebaserc`.
+3. Local browser test at http://localhost:8777/index.html — confirm a real reply comes back.
+4. Restrict the API key (HTTP referrer → the Firebase Hosting domain) before the repo goes public.
 
 ## Event day timeline (target, ~11:00 AM–4:45 PM hacking window)
 

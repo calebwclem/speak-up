@@ -12,8 +12,34 @@ You describe a situation you want to practice. Gemini, grounded with live Google
 Gemini's Google Search grounding is core to how this works — it's not a decorative chatbot layer, it's what lets every practice round be based on a real, current, specific issue instead of a generic made-up scenario. Gemini's reasoning is also what calibrates the response to argument quality — engaging seriously with strong points, naming fallacies in weak ones, and switching fluidly between "opponent" and "coach" modes on request.
 
 ## Tech
-- Gemini API with Google Search grounding
-- Firebase Hosting
+- **Gemini API** (`gemini-3.1-flash-lite`) with the **Google Search grounding** tool
+- **Firebase Hosting** for the deploy
+- **Google Cloud** credits fund the Search grounding quota (a paid-tier Gemini feature)
+
+Grounding is not decorative: each reply carries back the queries Gemini ran and the
+source URLs it argued from, and the UI renders them under the message, so a user can
+click through to the real articles behind their practice round.
+
+## Running it locally
+```bash
+cp public/config.example.js public/config.js   # then paste your Gemini API key in
+cd public && python3 -m http.server 8777
+# open http://localhost:8777/index.html
+```
+`public/config.js` is gitignored so the key never enters git history. Firebase Hosting
+still deploys it, because `firebase.json` only ignores dotfiles and `node_modules`.
+
+> **Note on the key:** this is a frontend-only app, so the key is visible to anyone who
+> loads the deployed page. That is a deliberate hackathon trade-off for speed. Restrict
+> the key to the Hosting domain in the Cloud console, and move the call into a Cloud
+> Function before this goes anywhere real.
+
+## Deploying
+```bash
+firebase login
+firebase use --add        # writes .firebaserc
+firebase deploy --only hosting
+```
 
 ## Try it
 [Live URL — add after deploy]
