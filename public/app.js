@@ -69,6 +69,8 @@ const loadingEl = document.getElementById("loading");
 const micBtn = document.getElementById("mic-btn");
 const setupMicBtn = document.getElementById("setup-mic-btn");
 const setupVoiceStatusEl = document.getElementById("setup-voice-status");
+const voiceSelect = document.getElementById("voice-select");
+const voicePickWrap = document.getElementById("voice-pick");
 const speakToggleBtn = document.getElementById("speak-toggle-btn");
 const voiceStatusEl = document.getElementById("voice-status");
 
@@ -122,6 +124,18 @@ function initVoice() {
     else updateSpeakToggle();
   }
 
+  if (speechSynth) {
+    populateVoiceList();
+    // Safari and Chrome both populate the list asynchronously on first load.
+    if (typeof speechSynth.addEventListener === "function") {
+      speechSynth.addEventListener("voiceschanged", () => {
+        chosenVoice = null;
+        populateVoiceList();
+      });
+    }
+    setTimeout(populateVoiceList, 400);
+  }
+
   if (!SpeechRecognitionCtor) {
     // Firefox has no speech recognition; typing still works, so just say so.
     [micBtn, setupMicBtn].forEach((b) => b && b.classList.add("hidden"));
@@ -152,13 +166,44 @@ const VOICE_PREFERENCES = [
 ];
 
 let chosenVoice = null;
+let preferredVoiceName = loadVoicePref();
+
+function loadVoicePref() {
+  try {
+    return localStorage.getItem("preferredVoice") || "";
+  } catch (err) {
+    return "";
+  }
+}
+
+function saveVoicePref(name) {
+  try {
+    localStorage.setItem("preferredVoice", name);
+  } catch (err) {
+    /* preference just won't persist */
+  }
+}
+
+function availableVoices() {
+  if (!speechSynth || typeof speechSynth.getVoices !== "function") return [];
+  return speechSynth.getVoices() || [];
+}
 
 function pickVoice() {
   if (chosenVoice) return chosenVoice;
-  if (!speechSynth || typeof speechSynth.getVoices !== "function") return null;
 
-  const voices = speechSynth.getVoices() || [];
+  const voices = availableVoices();
   if (!voices.length) return null;
+
+  // An explicit choice always wins over the heuristic.
+  if (preferredVoiceName) {
+    const exact = voices.find((v) => v.name === preferredVoiceName);
+    if (exact) {
+      chosenVoice = exact;
+      console.info("[voice] using chosen voice:", exact.name);
+      return chosenVoice;
+    }
+  }
 
   const english = voices.filter((v) => /^en(-|_|$)/i.test(v.lang || ""));
   const pool = english.length ? english : voices;
@@ -172,8 +217,35 @@ function pickVoice() {
   }
   if (!chosenVoice) chosenVoice = pool.find((v) => v.default) || pool[0];
 
-  console.info("[voice] using voice:", chosenVoice && chosenVoice.name, "of", voices.length, "available");
+  console.info("[voice] auto-picked:", chosenVoice && chosenVoice.name, "of", voices.length, "available");
   return chosenVoice;
+}
+
+// Heuristics only go so far — the voices installed on the demo machine are the
+// ones that matter, so list them and let the user choose.
+function populateVoiceList() {
+  if (!voiceSelect || !voicePickWrap) return;
+
+  const voices = availableVoices();
+  if (!voices.length) return;
+
+  console.info("[voice] available:", voices.map((v) => `${v.name} [${v.lang}]`).join(", "));
+
+  const english = voices.filter((v) => /^en(-|_|$)/i.test(v.lang || ""));
+  const rest = voices.filter((v) => !english.includes(v));
+  const ordered = english.concat(rest);
+
+  voiceSelect.innerHTML = "";
+  ordered.forEach((v) => {
+    const option = document.createElement("option");
+    option.value = v.name;
+    option.textContent = v.lang && !/^en-US$/i.test(v.lang) ? `${v.name} — ${v.lang}` : v.name;
+    voiceSelect.appendChild(option);
+  });
+
+  const active = pickVoice();
+  if (active) voiceSelect.value = active.name;
+  voicePickWrap.classList.remove("hidden");
 }
 
 function speak(text) {
@@ -368,6 +440,20 @@ if (micBtn) {
 
 if (setupMicBtn) {
   setupMicBtn.addEventListener("click", () => startListening(setupVoiceTarget()));
+}
+
+if (voiceSelect) {
+  voiceSelect.addEventListener("change", () => {
+    preferredVoiceName = voiceSelect.value;
+    saveVoicePref(preferredVoiceName);
+    chosenVoice = null;
+    pickVoice();
+    // Say a line in the new voice so the choice can be judged immediately.
+    const wasMuted = !speakReplies;
+    speakReplies = true;
+    speak("This is how I'll sound.");
+    speakReplies = !wasMuted;
+  });
 }
 
 if (speakToggleBtn) {
