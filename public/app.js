@@ -1,7 +1,8 @@
 // ===== CONFIG =====
-// ⚠️ Frontend-only approach: API key is visible in browser network requests.
-// Fine for a capped/free hackathon key — do NOT commit this key to a public repo.
-const GEMINI_API_KEY = "YOUR_API_KEY_HERE";
+// ⚠️ Frontend-only approach: the API key is visible in browser network requests.
+// Fine for a capped/free hackathon key, but it must never reach git — it lives in
+// public/config.js, which is gitignored (see config.example.js for the template).
+const GEMINI_API_KEY = window.GEMINI_CONFIG?.apiKey || "";
 const MODEL = "gemini-3.1-flash-lite"; // verified: stable endpoint, supports Google Search grounding
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -48,6 +49,14 @@ const sendBtn = document.getElementById("send-btn");
 const coachBtn = document.getElementById("coach-btn");
 const newRoundBtn = document.getElementById("new-round-btn");
 const loadingEl = document.getElementById("loading");
+
+// ===== STARTUP CHECK =====
+if (!GEMINI_API_KEY) {
+  console.error("No Gemini API key found. Copy public/config.example.js to public/config.js and paste your key in.");
+  startBtn.disabled = true;
+  document.querySelector("#setup-screen .hint").textContent =
+    "Missing API key — copy public/config.example.js to public/config.js and add your Gemini key.";
+}
 
 // ===== EVENTS =====
 startBtn.addEventListener("click", startScenario);
