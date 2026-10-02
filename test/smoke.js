@@ -54,7 +54,8 @@ function makeEl(tag, id) {
 
 const ids = ["setup-screen", "chat-screen", "scenario-input", "start-btn", "messages",
              "message-input", "send-btn", "coach-btn", "new-round-btn", "loading",
-             "mic-btn", "speak-toggle-btn", "voice-status"];
+             "mic-btn", "speak-toggle-btn", "voice-status",
+             "setup-mic-btn", "setup-voice-status"];
 const registry = {};
 ids.forEach((id) => (registry[id] = makeEl("div", id)));
 const hintEl = makeEl("p");
@@ -130,11 +131,13 @@ const classes = () => msgs().map((m) => m.className);
 
 (async () => {
   console.log("\n1. Wiring");
-  check("all 13 elements resolved", ids.filter((i) => !registry[i]).length, 0);
+  check("all 15 elements resolved", ids.filter((i) => !registry[i]).length, 0);
   check("start button enabled with a key present", registry["start-btn"].disabled, false);
 
   console.log("\n1b. Voice degrades without Web Speech support");
-  check("mic hidden when recognition unsupported", registry["mic-btn"].classList.contains("hidden"), true);
+  check("chat mic hidden when recognition unsupported", registry["mic-btn"].classList.contains("hidden"), true);
+  check("setup mic hidden too", registry["setup-mic-btn"].classList.contains("hidden"), true);
+  check("setup status explains why", registry["setup-voice-status"].textContent.includes("Chrome, Edge or Safari"), true);
   check("status explains why", registry["voice-status"].textContent.includes("Chrome, Edge or Safari"), true);
   check("speak toggle hidden without synthesis", registry["speak-toggle-btn"].classList.contains("hidden"), true);
   check("no exception reached the app", typeof app.sendMessage, "function");

@@ -309,3 +309,35 @@ button:disabled {
   margin: 8px 0 0 0;
   min-height: 1.1em;
 }
+
+.input-with-mic {
+  display: flex;
+  gap: 8px;
+}
+
+.input-with-mic input {
+  flex: 1;
+  min-width: 0;
+}
+
+#setup-mic-btn {
+  background: #2e333d;
+  font-size: 1.05rem;
+  padding: 12px 14px;
+  line-height: 1;
+}
+
+#setup-mic-btn:hover:not(:disabled) {
+  background: #3a404c;
+}
+
+#setup-mic-btn.listening {
+  background: #a83232;
+  animation: mic-pulse 1.3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #setup-mic-btn.listening {
+    animation: none;
+  }
+}

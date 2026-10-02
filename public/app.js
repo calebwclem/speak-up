@@ -67,6 +67,8 @@ const coachBtn = document.getElementById("coach-btn");
 const newRoundBtn = document.getElementById("new-round-btn");
 const loadingEl = document.getElementById("loading");
 const micBtn = document.getElementById("mic-btn");
+const setupMicBtn = document.getElementById("setup-mic-btn");
+const setupVoiceStatusEl = document.getElementById("setup-voice-status");
 const speakToggleBtn = document.getElementById("speak-toggle-btn");
 const voiceStatusEl = document.getElementById("voice-status");
 
@@ -79,15 +81,15 @@ if (!GEMINI_API_KEY) {
 }
 
 // ===== VOICE (browser-native Web Speech API — no paid service, no API key) =====
-// Speaking out loud is the point of the tool, so this is the real rehearsal mode:
-// the mic turns a typed round into a spoken one, and replies are read back so the
-// user is listening and responding rather than reading.
+// Speaking out loud is the point of the tool, so both screens take voice: the setup
+// screen to say what you want to rehearse, the chat screen to make your points.
 
 const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
 const speechSynth = typeof window !== "undefined" ? window.speechSynthesis : null;
 
 let recognition = null;
 let isListening = false;
+let voiceTarget = null; // { input, statusEl, micBtn, onFinal } for whichever screen is live
 let speakReplies = loadSpeakPref();
 
 function loadSpeakPref() {
@@ -108,26 +110,31 @@ function saveSpeakPref(value) {
   }
 }
 
-function setVoiceStatus(text) {
-  if (!voiceStatusEl) return;
-  voiceStatusEl.textContent = text || "";
-  voiceStatusEl.classList.toggle("hidden", !text);
+function setVoiceStatus(statusEl, text) {
+  if (!statusEl) return;
+  statusEl.textContent = text || "";
+  statusEl.classList.toggle("hidden", !text);
 }
 
 function initVoice() {
-  if (!micBtn || !speakToggleBtn) return;
+  if (setupMicBtn) {
+  setupMicBtn.addEventListener("click", () => startListening(setupVoiceTarget()));
+}
+
+if (speakToggleBtn) {
+    if (!speechSynth) speakToggleBtn.classList.add("hidden");
+    else updateSpeakToggle();
+  }
 
   if (!SpeechRecognitionCtor) {
     // Firefox has no speech recognition; typing still works, so just say so.
-    micBtn.classList.add("hidden");
-    setVoiceStatus("Voice input needs Chrome, Edge or Safari — typing works everywhere.");
+    [micBtn, setupMicBtn].forEach((b) => b && b.classList.add("hidden"));
+    setVoiceStatus(setupVoiceStatusEl, "Voice input needs Chrome, Edge or Safari — typing works everywhere.");
+    setVoiceStatus(voiceStatusEl, "Voice input needs Chrome, Edge or Safari — typing works everywhere.");
+    console.info("[voice] SpeechRecognition unavailable in this browser.");
+    return;
   }
-
-  if (!speechSynth) {
-    speakToggleBtn.classList.add("hidden");
-  } else {
-    updateSpeakToggle();
-  }
+  console.info("[voice] SpeechRecognition available:", SpeechRecognitionCtor.name || "webkitSpeechRecognition");
 }
 
 function updateSpeakToggle() {
@@ -151,10 +158,24 @@ function stopSpeaking() {
   }
 }
 
-function startListening() {
-  if (!SpeechRecognitionCtor || isListening) return;
+function startListening(target) {
+  if (isListening) {
+    stopListening();
+    return;
+  }
 
-  // Never listen while the reply is still playing, or the mic hears the app.
+  if (!SpeechRecognitionCtor) {
+    setVoiceStatus(target.statusEl, "Voice input isn't supported in this browser — type instead.");
+    return;
+  }
+
+  // Acknowledge the click immediately. If the browser then refuses, the message is
+  // replaced by the real reason rather than leaving the button looking dead.
+  voiceTarget = target;
+  setVoiceStatus(target.statusEl, "Starting microphone…");
+  console.info("[voice] starting recognition");
+
+  // Never listen while a reply is still playing, or the mic hears the app.
   stopSpeaking();
 
   recognition = new SpeechRecognitionCtor();
@@ -165,10 +186,16 @@ function startListening() {
 
   recognition.onstart = () => {
     isListening = true;
-    micBtn.classList.add("listening");
-    micBtn.textContent = "⏹";
-    setVoiceStatus("Listening… speak your point, then pause.");
+    if (target.micBtn) {
+      target.micBtn.classList.add("listening");
+      target.micBtn.textContent = "⏹";
+    }
+    setVoiceStatus(target.statusEl, "Listening… speak, then pause.");
+    console.info("[voice] onstart");
   };
+
+  recognition.onaudiostart = () => console.info("[voice] onaudiostart — mic is open");
+  recognition.onspeechstart = () => console.info("[voice] onspeechstart — speech detected");
 
   recognition.onresult = (event) => {
     let interim = "";
@@ -178,43 +205,57 @@ function startListening() {
       if (event.results[i].isFinal) final += chunk;
       else interim += chunk;
     }
-    // Show the words landing as they are recognised, so a mishearing is visible
-    // before it gets sent.
-    messageInput.value = (final || interim).trim();
+    // Show words landing as they are recognised, so a mishearing is visible early.
+    target.input.value = (final || interim).trim();
+    console.info("[voice] onresult", { interim, final });
     if (final.trim()) {
-      setVoiceStatus("Heard you — sending.");
       const spoken = final.trim();
+      setVoiceStatus(target.statusEl, "Heard you.");
       stopListening();
-      sendMessage(spoken);
+      target.onFinal(spoken);
     }
   };
 
   recognition.onerror = (event) => {
     const messages = {
-      "not-allowed": "Microphone blocked. Allow mic access in the address bar, or type instead.",
-      "service-not-allowed": "Microphone blocked by the browser. Type instead.",
-      "no-speech": "Didn't catch that — tap the mic and try again.",
-      "audio-capture": "No microphone found. Type instead."
+      "not-allowed": "Microphone blocked. Click the icon in the address bar and allow the mic, then try again.",
+      "service-not-allowed": "The browser blocked speech recognition. Try Chrome, or type instead.",
+      "no-speech": "Didn't catch anything — tap the mic and speak a little louder.",
+      "audio-capture": "No microphone found. Check your input device, or type instead.",
+      "network": "Speech recognition needs a network connection to Google's service. Type instead.",
+      "aborted": ""
     };
-    setVoiceStatus(messages[event.error] || `Voice input error: ${event.error}`);
-    stopListening();
+    const msg = messages[event.error] !== undefined
+      ? messages[event.error]
+      : `Voice input error: ${event.error}`;
+    console.warn("[voice] onerror", event.error, event);
+    setVoiceStatus(target.statusEl, msg);
+    stopListening({ keepStatus: true });
   };
 
-  recognition.onend = () => stopListening();
+  recognition.onend = () => {
+    console.info("[voice] onend");
+    stopListening({ keepStatus: true });
+  };
 
   try {
     recognition.start();
   } catch (err) {
-    setVoiceStatus("Couldn't start the microphone — type instead.");
-    stopListening();
+    console.error("[voice] start() threw", err);
+    setVoiceStatus(target.statusEl, `Couldn't start the microphone: ${err.message}`);
+    stopListening({ keepStatus: true });
   }
 }
 
-function stopListening() {
+function stopListening(opts = {}) {
+  const target = voiceTarget;
   isListening = false;
-  if (micBtn) {
-    micBtn.classList.remove("listening");
-    micBtn.textContent = "🎤";
+  if (target && target.micBtn) {
+    target.micBtn.classList.remove("listening");
+    target.micBtn.textContent = "🎤";
+  }
+  if (target && !opts.keepStatus) {
+    setVoiceStatus(target.statusEl, "");
   }
   if (recognition) {
     try {
@@ -226,6 +267,27 @@ function stopListening() {
   }
 }
 
+function setupVoiceTarget() {
+  return {
+    input: scenarioInput,
+    statusEl: setupVoiceStatusEl,
+    micBtn: setupMicBtn,
+    onFinal: (spoken) => {
+      scenarioInput.value = spoken;
+      startScenario();
+    }
+  };
+}
+
+function chatVoiceTarget() {
+  return {
+    input: messageInput,
+    statusEl: voiceStatusEl,
+    micBtn: micBtn,
+    onFinal: (spoken) => sendMessage(spoken)
+  };
+}
+
 // ===== EVENTS =====
 startBtn.addEventListener("click", startScenario);
 scenarioInput.addEventListener("keydown", (e) => { if (e.key === "Enter") startScenario(); });
@@ -234,7 +296,11 @@ sendBtn.addEventListener("click", () => sendMessage(messageInput.value));
 messageInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage(messageInput.value); });
 
 if (micBtn) {
-  micBtn.addEventListener("click", () => (isListening ? stopListening() : startListening()));
+  micBtn.addEventListener("click", () => startListening(chatVoiceTarget()));
+}
+
+if (setupMicBtn) {
+  setupMicBtn.addEventListener("click", () => startListening(setupVoiceTarget()));
 }
 
 if (speakToggleBtn) {
@@ -253,7 +319,8 @@ coachBtn.addEventListener("click", () => {
 newRoundBtn.addEventListener("click", () => {
   stopSpeaking();
   stopListening();
-  setVoiceStatus("");
+  setVoiceStatus(voiceStatusEl, "");
+  setVoiceStatus(setupVoiceStatusEl, "");
   conversationHistory = [];
   groundingNoticeShown = false;
   messagesEl.innerHTML = "";
@@ -465,6 +532,7 @@ function setLoading(isLoading) {
   sendBtn.disabled = isLoading;
   coachBtn.disabled = isLoading;
   if (micBtn) micBtn.disabled = isLoading;
+  if (setupMicBtn) setupMicBtn.disabled = isLoading;
   // Never re-enable the start button if there is no key to call with.
   startBtn.disabled = isLoading || !GEMINI_API_KEY;
 }

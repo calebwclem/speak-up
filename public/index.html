@@ -17,13 +17,17 @@
 
   <div id="setup-screen">
     <label for="scenario-input">What do you want to practice?</label>
-    <input
-      id="scenario-input"
-      type="text"
-      placeholder="e.g. public comment on a local housing proposal"
-      autocomplete="off"
-      enterkeyhint="go"
-    >
+    <div class="input-with-mic">
+      <input
+        id="scenario-input"
+        type="text"
+        placeholder="e.g. public comment on a local housing proposal"
+        autocomplete="off"
+        enterkeyhint="go"
+      >
+      <button id="setup-mic-btn" aria-label="Say what you want to practise" title="Say what you want to practise">🎤</button>
+    </div>
+    <p id="setup-voice-status" class="voice-status hidden" role="status"></p>
     <button id="start-btn">Start Practice Round</button>
     <p class="hint">We'll find a real, current local issue related to your topic.</p>
   </div>
