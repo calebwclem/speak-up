@@ -94,14 +94,15 @@ async function sendMessage(text, opts = {}) {
   conversationHistory.push({ role: "user", parts: [{ text: trimmed }] });
 
   try {
-    const content = await callGemini(conversationHistory);
+    const candidate = await callGemini(conversationHistory);
     // Push the model's parts back verbatim so thought signatures survive into the
     // next turn — Gemini 3 uses them to keep reasoning context across calls.
-    conversationHistory.push({ role: "model", parts: content.parts });
+    conversationHistory.push({ role: "model", parts: candidate.content.parts });
 
-    const replyText = textFromContent(content) || "(no response text)";
+    const replyText = textFromContent(candidate.content) || "(no response text)";
     const isCoach = trimmed.toLowerCase().includes("stepping out") || trimmed.toLowerCase().includes("as a coach");
     addMessageBubble(replyText, isCoach ? "coach" : "ai");
+    addGroundingPanel(candidate.groundingMetadata);
   } catch (err) {
     console.error(err);
     conversationHistory.pop(); // drop the unanswered user turn so history stays alternating
@@ -130,11 +131,11 @@ async function callGemini(history) {
   }
 
   const data = await res.json();
-  const content = data.candidates?.[0]?.content;
-  if (!content) {
+  const candidate = data.candidates?.[0];
+  if (!candidate?.content) {
     throw new Error(`Gemini returned no candidate: ${JSON.stringify(data).slice(0, 500)}`);
   }
-  return content;
+  return candidate;
 }
 
 // A grounded Gemini 3 reply can be several parts, and some carry no user-facing
@@ -153,6 +154,61 @@ function addMessageBubble(text, type) {
   div.className = `message ${type}`;
   div.textContent = text;
   messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+// When the model actually searched, the response carries groundingMetadata.
+// Google's Search grounding terms require showing the Search Suggestions widget
+// and the sources — and it doubles as the clearest proof to the user (or a judge)
+// that the scenario is a real current issue, not something the model invented.
+function addGroundingPanel(groundingMetadata) {
+  if (!groundingMetadata) return;
+
+  const chunks = groundingMetadata.groundingChunks || [];
+  const queries = groundingMetadata.webSearchQueries || [];
+  const entryPointHtml = groundingMetadata.searchEntryPoint?.renderedContent;
+  if (!chunks.length && !queries.length && !entryPointHtml) return;
+
+  const panel = document.createElement("div");
+  panel.className = "grounding";
+
+  const heading = document.createElement("p");
+  heading.className = "grounding-heading";
+  heading.textContent = "Grounded in a live Google Search";
+  panel.appendChild(heading);
+
+  if (queries.length) {
+    const q = document.createElement("p");
+    q.className = "grounding-queries";
+    q.textContent = `Searched: ${queries.join("  ·  ")}`;
+    panel.appendChild(q);
+  }
+
+  const list = document.createElement("ol");
+  list.className = "grounding-sources";
+  chunks.forEach((chunk) => {
+    const web = chunk.web;
+    if (!web?.uri) return;
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.href = web.uri;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = web.title || web.uri;
+    li.appendChild(a);
+    list.appendChild(li);
+  });
+  if (list.children.length) panel.appendChild(list);
+
+  if (entryPointHtml) {
+    // Required by the grounding terms: render Google's widget exactly as provided.
+    const entry = document.createElement("div");
+    entry.className = "grounding-entry-point";
+    entry.innerHTML = entryPointHtml;
+    panel.appendChild(entry);
+  }
+
+  messagesEl.appendChild(panel);
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
