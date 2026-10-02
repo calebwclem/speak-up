@@ -21,16 +21,25 @@
       id="scenario-input"
       type="text"
       placeholder="e.g. public comment on a local housing proposal"
+      autocomplete="off"
+      enterkeyhint="go"
     >
     <button id="start-btn">Start Practice Round</button>
     <p class="hint">We'll find a real, current local issue related to your topic.</p>
   </div>
 
   <div id="chat-screen" class="hidden">
-    <div id="messages"></div>
+    <div id="messages" role="log" aria-live="polite" aria-label="Practice conversation"></div>
 
     <div id="input-row">
-      <input id="message-input" type="text" placeholder="Make your point...">
+        <input
+        id="message-input"
+        type="text"
+        placeholder="Make your point..."
+        autocomplete="off"
+        enterkeyhint="send"
+        aria-label="Your point"
+      >
       <button id="send-btn">Send</button>
     </div>
 
@@ -38,7 +47,7 @@
     <button id="new-round-btn">New Scenario</button>
   </div>
 
-  <div id="loading" class="hidden">
+  <div id="loading" class="hidden" role="status">
     <p>Thinking...</p>
   </div>
 

@@ -147,6 +147,7 @@ async function sendMessage(text, opts = {}) {
   } finally {
     isSending = false;
     setLoading(false);
+    messageInput.focus();
   }
 }
 

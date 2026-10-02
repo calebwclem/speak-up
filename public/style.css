@@ -226,3 +226,31 @@ button:hover {
   background: #1d1a10;
   color: #cbb878;
 }
+
+/* Narrow screens: reclaim the side padding and let the transcript use the height. */
+@media (max-width: 480px) {
+  #app {
+    padding: 16px;
+  }
+
+  #messages {
+    max-height: none;
+  }
+
+  h1 {
+    font-size: 1.35rem;
+  }
+}
+
+/* Visible keyboard focus — the default outline is removed on inputs above. */
+button:focus-visible,
+input:focus-visible,
+.grounding-sources a:focus-visible {
+  outline: 2px solid #8fb0f2;
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
