@@ -117,11 +117,7 @@ function setVoiceStatus(statusEl, text) {
 }
 
 function initVoice() {
-  if (setupMicBtn) {
-  setupMicBtn.addEventListener("click", () => startListening(setupVoiceTarget()));
-}
-
-if (speakToggleBtn) {
+  if (speakToggleBtn) {
     if (!speechSynth) speakToggleBtn.classList.add("hidden");
     else updateSpeakToggle();
   }
@@ -146,10 +142,33 @@ function updateSpeakToggle() {
 function speak(text) {
   if (!speakReplies || !speechSynth || !text) return;
   stopSpeaking();
+
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = 1.02; // conversational, not newsreader-slow
   utterance.lang = "en-US";
-  speechSynth.speak(utterance);
+  utterance.onstart = () => console.info("[voice] speaking");
+  utterance.onerror = (e) => console.warn("[voice] speech error:", e.error);
+
+  // Chrome quirks worth guarding against, both of which fail silently:
+  // the synthesiser can be left in a paused state by an earlier cancel, and
+  // speak() before the voice list has loaded can be dropped on the floor.
+  const say = () => {
+    try {
+      if (speechSynth.paused) speechSynth.resume();
+      speechSynth.speak(utterance);
+    } catch (err) {
+      console.warn("[voice] speak() threw:", err);
+    }
+  };
+
+  const voices = typeof speechSynth.getVoices === "function" ? speechSynth.getVoices() : [];
+  if (voices.length === 0 && typeof speechSynth.addEventListener === "function") {
+    speechSynth.addEventListener("voiceschanged", say, { once: true });
+    // Don't hang on a browser that never fires the event.
+    setTimeout(say, 250);
+    return;
+  }
+  say();
 }
 
 function stopSpeaking() {
