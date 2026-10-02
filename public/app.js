@@ -139,13 +139,58 @@ function updateSpeakToggle() {
   speakToggleBtn.classList.toggle("voice-off", !speakReplies);
 }
 
+// Browsers expose a pile of voices of wildly different quality and default to a
+// mediocre one. Prefer the natural-sounding families, newest first: macOS Premium
+// and Enhanced voices are a different league from the stock robotic default.
+const VOICE_PREFERENCES = [
+  /premium/i,
+  /enhanced/i,
+  /neural|natural/i,
+  /\b(ava|allison|joelle|nathan|zoe|evan)\b/i,
+  /google (us|uk) english/i,
+  /\b(samantha|alex|daniel|karen|moira|tessa)\b/i
+];
+
+let chosenVoice = null;
+
+function pickVoice() {
+  if (chosenVoice) return chosenVoice;
+  if (!speechSynth || typeof speechSynth.getVoices !== "function") return null;
+
+  const voices = speechSynth.getVoices() || [];
+  if (!voices.length) return null;
+
+  const english = voices.filter((v) => /^en(-|_|$)/i.test(v.lang || ""));
+  const pool = english.length ? english : voices;
+
+  for (const pattern of VOICE_PREFERENCES) {
+    const match = pool.find((v) => pattern.test(v.name || ""));
+    if (match) {
+      chosenVoice = match;
+      break;
+    }
+  }
+  if (!chosenVoice) chosenVoice = pool.find((v) => v.default) || pool[0];
+
+  console.info("[voice] using voice:", chosenVoice && chosenVoice.name, "of", voices.length, "available");
+  return chosenVoice;
+}
+
 function speak(text) {
   if (!speakReplies || !speechSynth || !text) return;
   stopSpeaking();
 
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1.02; // conversational, not newsreader-slow
-  utterance.lang = "en-US";
+  const voice = pickVoice();
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang || "en-US";
+  } else {
+    utterance.lang = "en-US";
+  }
+  // Slightly quick and very slightly low — reads as someone talking, not announcing.
+  utterance.rate = 1.04;
+  utterance.pitch = 0.95;
   utterance.onstart = () => console.info("[voice] speaking");
   utterance.onerror = (e) => console.warn("[voice] speech error:", e.error);
 
@@ -163,7 +208,10 @@ function speak(text) {
 
   const voices = typeof speechSynth.getVoices === "function" ? speechSynth.getVoices() : [];
   if (voices.length === 0 && typeof speechSynth.addEventListener === "function") {
-    speechSynth.addEventListener("voiceschanged", say, { once: true });
+    speechSynth.addEventListener("voiceschanged", () => {
+      chosenVoice = null; // re-pick now that the real list has arrived
+      say();
+    }, { once: true });
     // Don't hang on a browser that never fires the event.
     setTimeout(say, 250);
     return;

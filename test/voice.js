@@ -63,12 +63,18 @@ class FakeRecognition {
   emitError(code) { this.onerror({ error: code }); }
 }
 const spoken = [];
+global.lastUtterance = null;
 const synth = {
   speaking: false, pending: false, paused: false,
-  getVoices: () => [{ name: "Test Voice" }],
+  getVoices: () => [
+    { name: "Albert", lang: "en-US" },
+    { name: "Samantha", lang: "en-US", default: true },
+    { name: "Ava (Premium)", lang: "en-US" },
+    { name: "Amelie", lang: "fr-CA" }
+  ],
   addEventListener: () => {},
   resume() {},
-  speak(u) { spoken.push(u.text); },
+  speak(u) { spoken.push(u.text); global.lastUtterance = u; },
   cancel() { spoken.push("<cancel>"); }
 };
 global.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
@@ -116,6 +122,10 @@ module.exports = { speak, startListening, isSupported: () => !!SpeechRecognition
 
   console.log("\n4. The reply is spoken aloud");
   check("utterance queued", spoken.includes("Counter-point."), true);
+
+  console.log("\n4b. The best available voice is chosen, not the default");
+  check("premium voice preferred over the default", lastUtterance && lastUtterance.voice.name, "Ava (Premium)");
+  check("non-English voice ignored", lastUtterance && lastUtterance.voice.lang, "en-US");
 
   console.log("\n5. Clicking the chat mic works too");
   registry["mic-btn"].dispatch("click");
