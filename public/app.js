@@ -37,6 +37,7 @@ If the user explicitly signals they want to step outside the practice round — 
 
 // ===== STATE =====
 let conversationHistory = []; // array of {role: "user"|"model", parts: [{text}]}
+let groundingNoticeShown = false; // only warn once per round that grounding is unavailable
 
 // ===== DOM =====
 const setupScreen = document.getElementById("setup-screen");
@@ -71,6 +72,7 @@ coachBtn.addEventListener("click", () => {
 
 newRoundBtn.addEventListener("click", () => {
   conversationHistory = [];
+  groundingNoticeShown = false;
   messagesEl.innerHTML = "";
   chatScreen.classList.add("hidden");
   setupScreen.classList.remove("hidden");
@@ -103,7 +105,7 @@ async function sendMessage(text, opts = {}) {
   conversationHistory.push({ role: "user", parts: [{ text: trimmed }] });
 
   try {
-    const candidate = await callGemini(conversationHistory);
+    const { candidate, grounded } = await callGeminiWithFallback(conversationHistory);
     // Push the model's parts back verbatim so thought signatures survive into the
     // next turn — Gemini 3 uses them to keep reasoning context across calls.
     conversationHistory.push({ role: "model", parts: candidate.content.parts });
@@ -112,6 +114,10 @@ async function sendMessage(text, opts = {}) {
     const isCoach = trimmed.toLowerCase().includes("stepping out") || trimmed.toLowerCase().includes("as a coach");
     addMessageBubble(replyText, isCoach ? "coach" : "ai");
     addGroundingPanel(candidate.groundingMetadata);
+    if (!grounded && !groundingNoticeShown) {
+      addGroundingNotice();
+      groundingNoticeShown = true;
+    }
   } catch (err) {
     console.error(err);
     conversationHistory.pop(); // drop the unanswered user turn so history stays alternating
@@ -121,12 +127,26 @@ async function sendMessage(text, opts = {}) {
   }
 }
 
-async function callGemini(history) {
+// Search grounding draws on a separate quota that needs billing enabled on the
+// key's Cloud project. If it is unavailable we still want a usable practice round,
+// so grounding is a flag rather than a hard requirement.
+async function callGeminiWithFallback(history) {
+  try {
+    return { candidate: await callGemini(history, { grounded: true }), grounded: true };
+  } catch (err) {
+    if (err.status !== 429 && err.status !== 403) throw err;
+    console.warn("Search grounding unavailable, retrying ungrounded:", err.message);
+    return { candidate: await callGemini(history, { grounded: false }), grounded: false };
+  }
+}
+
+async function callGemini(history, { grounded = true } = {}) {
   const body = {
     contents: history,
-    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-    tools: [{ google_search: {} }] // verified against current Gemini API docs (generateContent uses snake_case here)
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }
   };
+  // Field name per current Gemini API docs; camelCase googleSearch also works.
+  if (grounded) body.tools = [{ google_search: {} }];
 
   const res = await fetch(API_URL, {
     method: "POST",
@@ -136,7 +156,9 @@ async function callGemini(history) {
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Gemini API error ${res.status}: ${errText}`);
+    const err = new Error(`Gemini API error ${res.status}: ${errText}`);
+    err.status = res.status; // callGeminiWithFallback needs this to spot quota failures
+    throw err;
   }
 
   const data = await res.json();
@@ -218,6 +240,16 @@ function addGroundingPanel(groundingMetadata) {
   }
 
   messagesEl.appendChild(panel);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addGroundingNotice() {
+  const note = document.createElement("div");
+  note.className = "grounding grounding-warn";
+  note.textContent =
+    "Practicing without live grounding — the Google Search quota is unavailable, " +
+    "so this scenario isn't tied to a verified current issue.";
+  messagesEl.appendChild(note);
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 

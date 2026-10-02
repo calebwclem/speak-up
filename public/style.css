@@ -219,3 +219,10 @@ button:hover {
 .grounding-entry-point {
   margin-top: 10px;
 }
+
+.grounding-warn {
+  border-color: #5c4e1f;
+  border-left-color: #c9a227;
+  background: #1d1a10;
+  color: #cbb878;
+}
