@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Practice Partner</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <header>
+    <h1>Practice Partner</h1>
+    <p class="tagline">Rehearse the hard conversation before it counts.</p>
+  </header>
+
+  <div id="setup-screen">
+    <label for="scenario-input">What do you want to practice?</label>
+    <input
+      id="scenario-input"
+      type="text"
+      placeholder="e.g. public comment on a local housing proposal"
+    >
+    <button id="start-btn">Start Practice Round</button>
+    <p class="hint">We'll find a real, current local issue related to your topic.</p>
+  </div>
+
+  <div id="chat-screen" class="hidden">
+    <div id="messages"></div>
+
+    <div id="input-row">
+      <input id="message-input" type="text" placeholder="Make your point...">
+      <button id="send-btn">Send</button>
+    </div>
+
+    <button id="coach-btn">Get Coaching Feedback</button>
+    <button id="new-round-btn">New Scenario</button>
+  </div>
+
+  <div id="loading" class="hidden">
+    <p>Thinking...</p>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
