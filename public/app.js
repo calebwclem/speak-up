@@ -50,6 +50,12 @@ function isCoachRequest(text) {
   return COACH_TRIGGERS.some((t) => lower.includes(t));
 }
 
+const ROUND_REPORT_PROMPT = `Stepping out of the practice round now — as a coach, give me a report on the whole round, not just my last point. Cover three things, briefly and in plain language:
+1. The strongest point I made, and specifically why it landed.
+2. The habit or pattern that weakened me most across the whole exchange — name it directly, and point to where it showed up more than once.
+3. Two concrete phrasings I should try next time, written as I would actually say them out loud.
+Be honest. If something genuinely did not work, say so plainly.`;
+
 // ===== STATE =====
 let conversationHistory = []; // array of {role: "user"|"model", parts: [{text}]}
 let isSending = false; // guards against overlapping requests scrambling history order
@@ -64,6 +70,7 @@ const messagesEl = document.getElementById("messages");
 const messageInput = document.getElementById("message-input");
 const sendBtn = document.getElementById("send-btn");
 const coachBtn = document.getElementById("coach-btn");
+const reportBtn = document.getElementById("report-btn");
 const newRoundBtn = document.getElementById("new-round-btn");
 const loadingEl = document.getElementById("loading");
 const micBtn = document.getElementById("mic-btn");
@@ -379,6 +386,13 @@ if (speakToggleBtn) {
   });
 }
 
+if (reportBtn) {
+  reportBtn.addEventListener("click", () => {
+    addMessageBubble("End of round — coaching report", "context");
+    sendMessage(ROUND_REPORT_PROMPT, { hideUserBubble: true, bubbleType: "report" });
+  });
+}
+
 coachBtn.addEventListener("click", () => {
   sendMessage("Stepping out of the practice round for a second — as a coach, what was strong or weak about my last point? Be honest and specific.");
 });
@@ -433,8 +447,8 @@ async function sendMessage(text, opts = {}) {
     conversationHistory.push({ role: "model", parts: candidate.content.parts });
 
     const replyText = textFromContent(candidate.content) || "(no response text)";
-    const isCoach = isCoachRequest(trimmed);
-    addMessageBubble(replyText, isCoach ? "coach" : "ai");
+    const bubbleType = opts.bubbleType || (isCoachRequest(trimmed) ? "coach" : "ai");
+    addMessageBubble(replyText, bubbleType);
     speak(replyText); // read the opponent/coach back, never the sources panel
     addGroundingPanel(candidate.groundingMetadata);
     if (!grounded && !groundingNoticeShown) {
@@ -598,6 +612,7 @@ function setLoading(isLoading) {
   loadingEl.classList.toggle("hidden", !isLoading);
   sendBtn.disabled = isLoading;
   coachBtn.disabled = isLoading;
+  if (reportBtn) reportBtn.disabled = isLoading;
   if (micBtn) micBtn.disabled = isLoading;
   if (setupMicBtn) setupMicBtn.disabled = isLoading;
   // Never re-enable the start button if there is no key to call with.

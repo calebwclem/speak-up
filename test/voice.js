@@ -39,7 +39,7 @@ function makeEl(tag, id) {
 }
 
 const ids = ["setup-screen", "chat-screen", "scenario-input", "start-btn", "messages",
-             "message-input", "send-btn", "coach-btn", "new-round-btn", "loading",
+             "message-input", "send-btn", "coach-btn", "report-btn", "new-round-btn", "loading",
              "mic-btn", "speak-toggle-btn", "voice-status", "setup-mic-btn", "setup-voice-status"];
 const registry = {};
 ids.forEach((id) => (registry[id] = makeEl("div", id)));

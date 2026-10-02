@@ -61,6 +61,17 @@ Hit **Get Coaching Feedback**.
 > I actually did wrong, and gives me concrete alternative phrasings. Then I make
 > a new point and it goes straight back to arguing."
 
+**3b. Close with the round report (~30s)** — *Implementation + Presentation*
+
+Hit **End Round & Get Report**.
+
+> "And at the end it stops being an opponent entirely and tells me what to work on —
+> not just my last point, but the pattern across the whole round. That's the thing a
+> person practising alone can't see about themselves."
+
+This is your closing beat. It gives the demo a clean ending instead of trailing off
+mid-argument, and it is the moment that reads as coaching rather than chatting.
+
 **4. Why Gemini specifically (~45s)** — *Track Application, say this explicitly*
 
 > "Two things here are Gemini doing real work, not decoration. One: Google

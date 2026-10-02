@@ -341,3 +341,20 @@ button:disabled {
     animation: none;
   }
 }
+
+#report-btn {
+  background: #2a4a3a;
+  margin-top: 8px;
+}
+
+#report-btn:hover:not(:disabled) {
+  background: #355c48;
+}
+
+.message.report {
+  background: #14241c;
+  border: 1px solid #2f5c45;
+  border-left: 3px solid #4caf82;
+  align-self: stretch;
+  white-space: pre-wrap;
+}

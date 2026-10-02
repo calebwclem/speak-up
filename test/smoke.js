@@ -53,7 +53,7 @@ function makeEl(tag, id) {
 }
 
 const ids = ["setup-screen", "chat-screen", "scenario-input", "start-btn", "messages",
-             "message-input", "send-btn", "coach-btn", "new-round-btn", "loading",
+             "message-input", "send-btn", "coach-btn", "report-btn", "new-round-btn", "loading",
              "mic-btn", "speak-toggle-btn", "voice-status",
              "setup-mic-btn", "setup-voice-status"];
 const registry = {};
@@ -131,7 +131,7 @@ const classes = () => msgs().map((m) => m.className);
 
 (async () => {
   console.log("\n1. Wiring");
-  check("all 15 elements resolved", ids.filter((i) => !registry[i]).length, 0);
+  check("all 16 elements resolved", ids.filter((i) => !registry[i]).length, 0);
   check("start button enabled with a key present", registry["start-btn"].disabled, false);
 
   console.log("\n1b. Voice degrades without Web Speech support");
@@ -165,6 +165,16 @@ const classes = () => msgs().map((m) => m.className);
   queue = [groundedReply("Specifics.")];
   await app.sendMessage("what was wrong with that");
   check("alternate trigger also styled as coach", classes().slice(6, 8), ["message user", "message coach"]);
+
+  console.log("\n4d. Round report asks about the whole round");
+  requests = [];
+  queue = [groundedReply("Across the round you leaned on anecdote twice.")];
+  registry["report-btn"].dispatch("click");
+  await new Promise((r) => setTimeout(r, 10));
+  const sent = requests[0].contents[requests[0].contents.length - 1].parts[0].text;
+  check("prompt covers the whole round, not one point", sent.includes("whole round, not just my last point"), true);
+  check("report styled distinctly from coach", classes().slice(-3), ["message context", "message report", "grounding"]);
+  check("the long prompt is not shown as a user bubble", classes().filter((c) => c === "message user").length, 2);
 
   console.log("\n5. Grounding quota exhausted — fallback");
   requests = [];
