@@ -92,6 +92,81 @@ mid-argument, and it is the moment that reads as coaching rather than chatting.
 > rounds, and a coaching report that tracks the habits they're working on. And a
 > scenario library built with a specific community partner rather than guessed at."
 
+## The four things judges explicitly ask for
+
+Say these out loud. Judges score what you say, not what they infer.
+
+### 1. The problem you're solving (~30s)
+
+> "Speaking up in a high-stakes moment is a skill, and like any skill it takes
+> practice. But the people who most need to practice get the fewest chances to.
+> If you're an immigrant preparing to give public comment at a city meeting, or
+> an English-language learner facing a citizenship interview, or a
+> first-generation professional walking into your first salary negotiation, there
+> is no one to rehearse against. You get one shot, live, with the stakes real.
+> Everyone else practices with a friend who already knows how these rooms work."
+
+### 2. Your solution (~30s)
+
+> "Speak Up is a rehearsal partner. You say what you want to practice, and it
+> finds a real, current local issue — not a made-up one — and argues the other
+> side. It pushes back on your weak points and engages seriously with your strong
+> ones. Any time, you can step out and ask for coaching, and at the end of a round
+> it tells you what pattern weakened you across the whole conversation. And you
+> can do the entire thing out loud, by voice, because that's the situation you're
+> actually preparing for."
+
+### 3. What makes it unique (~30s)
+
+> "Three things. First, it's grounded in reality — every round is built on an
+> actual city council agenda item or live policy debate, and we show you the
+> search queries and the source links so you can check. Second, it calibrates: it
+> names the fallacy when you make a weak argument, and concedes when you make a
+> strong one, instead of agreeing with everything. Third, it's a coach as well as
+> an opponent — it switches between arguing with you and telling you how to argue
+> better, which is the part you can't get from practicing alone in front of a
+> mirror."
+
+### 4. The technology you used (~60s) — the one they care most about
+
+Lead with Gemini, name the specific tool use, then the architecture decision.
+
+> "The core is the **Gemini API** — `gemini-3.1-flash-lite` — with the **Google
+> Search grounding tool**. And the interesting part is *how* we use it, because the
+> obvious way doesn't work.
+>
+> We first tried a single call: give Gemini the grounding tool and ask it to find a
+> real issue and argue it. We tested that, and it only actually ran a search about
+> two times in three. The rest of the time it answered from memory and sounded
+> completely confident. That's worse than not grounding at all, because it looks
+> real and isn't.
+>
+> So we split it into two calls. One grounded call whose only job is to search and
+> find the issue — that's 4 out of 4 reliable — and it returns the queries it ran
+> and the sources it used, which we render on screen. Then a second call, with no
+> search tool, where Gemini plays the opponent. That made it both more reliable
+> *and* faster, because the conversation turns aren't carrying a search tool
+> anymore — about 1 second instead of 2.6.
+>
+> Around that: **Firebase Hosting** for the deploy, **Google Cloud** for the paid
+> tier that funds the grounding quota, and the browser-native **Web Speech API**
+> for speech-to-text and text-to-speech — no paid speech service, so voice costs
+> nothing to run.
+>
+> One more Gemini 3 specific detail: responses come back as multiple parts carrying
+> thought signatures, and you have to pass those back verbatim on the next turn or
+> the model loses its reasoning thread. Reading just the first part — the obvious
+> implementation — silently breaks multi-turn."
+
+**If they ask what you'd do differently or next:** move the API key behind a Cloud
+Function (right now it's a frontend-only call, which is a deliberate hackathon
+trade-off), and add Firestore session history so someone can see themselves improve
+across rounds.
+
+**If they ask about the Cloud credits:** be straight — the event coupon didn't
+redeem successfully, so the paid tier was self-funded to get grounding working. Don't
+claim credits you couldn't redeem.
+
 ## Hardships overcome — Presentation is explicitly scored on this
 
 Pick whichever is true at demo time. Be straight about it; judges respond well
