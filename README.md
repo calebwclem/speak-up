@@ -11,8 +11,18 @@ You describe a situation you want to practice. Gemini, grounded with live Google
 ## Why Gemini
 Gemini's Google Search grounding is core to how this works — it's not a decorative chatbot layer, it's what lets every practice round be based on a real, current, specific issue instead of a generic made-up scenario. Gemini's reasoning is also what calibrates the response to argument quality — engaging seriously with strong points, naming fallacies in weak ones, and switching fluidly between "opponent" and "coach" modes on request.
 
+## Voice
+Hit the 🎤 and speak your point instead of typing it — the rehearsal is a spoken one,
+which is the situation people are actually preparing for. Replies are read back aloud,
+so you listen and respond rather than read. Both use the browser-native **Web Speech
+API**: no paid speech service, no extra key, nothing to deploy.
+
+Speech recognition needs Chrome, Edge or Safari. Where it's missing (Firefox), the mic
+hides itself and says so — typing works everywhere.
+
 ## Tech
 - **Gemini API** (`gemini-3.1-flash-lite`) with the **Google Search grounding** tool
+- **Web Speech API** (browser-native) for speech-to-text and text-to-speech
 - **Firebase Hosting** for the deploy
 - **Google Cloud** credits fund the Search grounding quota (a paid-tier Gemini feature)
 
@@ -53,4 +63,4 @@ firebase deploy --only hosting
 **https://speak-up-app.web.app**
 
 ## What's next
-With more time: saved session history (Firestore) to track growth over turns, voice input/output for a more realistic rehearsal, and a wider library of scenario types.
+With more time: saved session history (Firestore) to track growth over rounds, a coaching report that shows improvement over time, and a scenario library built with a community partner rather than guessed at.

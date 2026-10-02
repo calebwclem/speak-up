@@ -10,6 +10,9 @@ loud** — don't make them infer anything below.
 - [ ] One practice round already run, then **New Scenario** — proves it works, leaves a clean screen.
 - [ ] Scenario text ready to paste: `public comment on a local housing proposal`
 - [ ] Phone on the live URL too, in case they ask about mobile (Design criterion).
+- [ ] Microphone permission already granted on the demo browser, and the mic tested once.
+- [ ] If the room is loud, turn **🔊 off** before demoing voice input so the reply audio
+      does not get picked up by the mic mid-round.
 - [ ] Know whether grounding is live. If it fell back, say so up front — see Hardships.
 
 ## The script
@@ -39,6 +42,17 @@ Make one deliberately weak argument (a cherry-picked statistic or a strawman).
 Let it call the weakness out by name. **That beat is the demo** — it's the thing
 a generic chatbot wrapper cannot do.
 
+**2b. Do one exchange by voice (~30s)** — *Implementation + Idea*
+
+Hit the 🎤, say your next point out loud, let the reply read itself back.
+
+> "This is the part that matters for who we built it for. You're not typing an essay —
+> you're saying it out loud and hearing someone push back, which is the thing you're
+> actually about to do at the microphone."
+
+Mic permission is granted per-origin, so **grant it once before judging starts** — do not
+let the browser permission prompt eat your demo time.
+
 **3. Coach mode (~45s)** — *Implementation*
 
 Hit **Get Coaching Feedback**.
@@ -64,9 +78,8 @@ Hit **Get Coaching Feedback**.
 **6. What's next (~30s)** — *Presentation*
 
 > "Firestore for session history, so someone can see themselves improve across
-> rounds. Voice input and output with the Web Speech API, so you're actually
-> speaking out loud instead of typing. And a scenario library built with a
-> specific community partner rather than guessed at."
+> rounds, and a coaching report that tracks the habits they're working on. And a
+> scenario library built with a specific community partner rather than guessed at."
 
 ## Hardships overcome — Presentation is explicitly scored on this
 

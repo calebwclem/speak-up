@@ -79,7 +79,7 @@ demo works either way. But grounding is the Track Application argument, so this 
 
 ## Decision points still open
 1. **Frontend-only Gemini calls vs. Cloud Functions backend** — frontend-only is faster to build and avoids the Blaze-plan question entirely if the coupon redemption path is unclear in the moment. Functions is more "correct" (protects API key) and uses the Cloud credit more concretely. DEFAULT: start frontend-only, upgrade to Functions only if time allows and coupon redemption goes smoothly.
-2. **Stretch goal: voice (STT/TTS)** — only attempt after the text version is fully working and deployed. Use browser-native Web Speech API, not a paid service.
+2. ~~**Stretch goal: voice (STT/TTS)**~~ — DONE. Web Speech API, both directions, degrades gracefully where unsupported.
 3. **Firestore session history** — nice-to-have for "track your growth over time" narrative, not required for a working demo. Add only if core loop + coach mode + deploy are all solid with time to spare.
 
 ## Minimal file structure (frontend-only version)

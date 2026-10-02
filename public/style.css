@@ -254,3 +254,58 @@ button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+/* ===== Voice controls ===== */
+
+#mic-btn {
+  background: #2e333d;
+  font-size: 1.05rem;
+  padding: 12px 14px;
+  line-height: 1;
+}
+
+#mic-btn:hover:not(:disabled) {
+  background: #3a404c;
+}
+
+#mic-btn.listening {
+  background: #a83232;
+  animation: mic-pulse 1.3s ease-in-out infinite;
+}
+
+#mic-btn.listening:hover {
+  background: #933;
+}
+
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(168, 50, 50, 0.55); }
+  50%      { box-shadow: 0 0 0 7px rgba(168, 50, 50, 0); }
+}
+
+/* Honour a reduced-motion preference — the colour change already signals state. */
+@media (prefers-reduced-motion: reduce) {
+  #mic-btn.listening {
+    animation: none;
+  }
+}
+
+#speak-toggle-btn {
+  background: #2e333d;
+  margin-top: 8px;
+  font-size: 0.95rem;
+}
+
+#speak-toggle-btn:hover {
+  background: #3a404c;
+}
+
+#speak-toggle-btn.voice-off {
+  color: #9a9a9a;
+}
+
+.voice-status {
+  color: #9a9a9a;
+  font-size: 0.85rem;
+  margin: 8px 0 0 0;
+  min-height: 1.1em;
+}

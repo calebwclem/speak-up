@@ -66,6 +66,9 @@ const sendBtn = document.getElementById("send-btn");
 const coachBtn = document.getElementById("coach-btn");
 const newRoundBtn = document.getElementById("new-round-btn");
 const loadingEl = document.getElementById("loading");
+const micBtn = document.getElementById("mic-btn");
+const speakToggleBtn = document.getElementById("speak-toggle-btn");
+const voiceStatusEl = document.getElementById("voice-status");
 
 // ===== STARTUP CHECK =====
 if (!GEMINI_API_KEY) {
@@ -75,6 +78,154 @@ if (!GEMINI_API_KEY) {
     "Missing API key — copy public/config.example.js to public/config.js and add your Gemini key.";
 }
 
+// ===== VOICE (browser-native Web Speech API — no paid service, no API key) =====
+// Speaking out loud is the point of the tool, so this is the real rehearsal mode:
+// the mic turns a typed round into a spoken one, and replies are read back so the
+// user is listening and responding rather than reading.
+
+const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+const speechSynth = typeof window !== "undefined" ? window.speechSynthesis : null;
+
+let recognition = null;
+let isListening = false;
+let speakReplies = loadSpeakPref();
+
+function loadSpeakPref() {
+  // Browser storage can throw in private mode — never let it break startup.
+  try {
+    const stored = localStorage.getItem("speakReplies");
+    return stored === null ? true : stored === "true";
+  } catch (err) {
+    return true;
+  }
+}
+
+function saveSpeakPref(value) {
+  try {
+    localStorage.setItem("speakReplies", String(value));
+  } catch (err) {
+    /* nothing to do — the preference just won't persist */
+  }
+}
+
+function setVoiceStatus(text) {
+  if (!voiceStatusEl) return;
+  voiceStatusEl.textContent = text || "";
+  voiceStatusEl.classList.toggle("hidden", !text);
+}
+
+function initVoice() {
+  if (!micBtn || !speakToggleBtn) return;
+
+  if (!SpeechRecognitionCtor) {
+    // Firefox has no speech recognition; typing still works, so just say so.
+    micBtn.classList.add("hidden");
+    setVoiceStatus("Voice input needs Chrome, Edge or Safari — typing works everywhere.");
+  }
+
+  if (!speechSynth) {
+    speakToggleBtn.classList.add("hidden");
+  } else {
+    updateSpeakToggle();
+  }
+}
+
+function updateSpeakToggle() {
+  speakToggleBtn.textContent = speakReplies ? "🔊 Reading replies aloud" : "🔇 Replies are silent";
+  speakToggleBtn.setAttribute("aria-pressed", String(speakReplies));
+  speakToggleBtn.classList.toggle("voice-off", !speakReplies);
+}
+
+function speak(text) {
+  if (!speakReplies || !speechSynth || !text) return;
+  stopSpeaking();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1.02; // conversational, not newsreader-slow
+  utterance.lang = "en-US";
+  speechSynth.speak(utterance);
+}
+
+function stopSpeaking() {
+  if (speechSynth && (speechSynth.speaking || speechSynth.pending)) {
+    speechSynth.cancel();
+  }
+}
+
+function startListening() {
+  if (!SpeechRecognitionCtor || isListening) return;
+
+  // Never listen while the reply is still playing, or the mic hears the app.
+  stopSpeaking();
+
+  recognition = new SpeechRecognitionCtor();
+  recognition.lang = "en-US";
+  recognition.interimResults = true;
+  recognition.continuous = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    isListening = true;
+    micBtn.classList.add("listening");
+    micBtn.textContent = "⏹";
+    setVoiceStatus("Listening… speak your point, then pause.");
+  };
+
+  recognition.onresult = (event) => {
+    let interim = "";
+    let final = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const chunk = event.results[i][0].transcript;
+      if (event.results[i].isFinal) final += chunk;
+      else interim += chunk;
+    }
+    // Show the words landing as they are recognised, so a mishearing is visible
+    // before it gets sent.
+    messageInput.value = (final || interim).trim();
+    if (final.trim()) {
+      setVoiceStatus("Heard you — sending.");
+      const spoken = final.trim();
+      stopListening();
+      sendMessage(spoken);
+    }
+  };
+
+  recognition.onerror = (event) => {
+    const messages = {
+      "not-allowed": "Microphone blocked. Allow mic access in the address bar, or type instead.",
+      "service-not-allowed": "Microphone blocked by the browser. Type instead.",
+      "no-speech": "Didn't catch that — tap the mic and try again.",
+      "audio-capture": "No microphone found. Type instead."
+    };
+    setVoiceStatus(messages[event.error] || `Voice input error: ${event.error}`);
+    stopListening();
+  };
+
+  recognition.onend = () => stopListening();
+
+  try {
+    recognition.start();
+  } catch (err) {
+    setVoiceStatus("Couldn't start the microphone — type instead.");
+    stopListening();
+  }
+}
+
+function stopListening() {
+  isListening = false;
+  if (micBtn) {
+    micBtn.classList.remove("listening");
+    micBtn.textContent = "🎤";
+  }
+  if (recognition) {
+    try {
+      recognition.stop();
+    } catch (err) {
+      /* already stopped */
+    }
+    recognition = null;
+  }
+}
+
 // ===== EVENTS =====
 startBtn.addEventListener("click", startScenario);
 scenarioInput.addEventListener("keydown", (e) => { if (e.key === "Enter") startScenario(); });
@@ -82,11 +233,27 @@ scenarioInput.addEventListener("keydown", (e) => { if (e.key === "Enter") startS
 sendBtn.addEventListener("click", () => sendMessage(messageInput.value));
 messageInput.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage(messageInput.value); });
 
+if (micBtn) {
+  micBtn.addEventListener("click", () => (isListening ? stopListening() : startListening()));
+}
+
+if (speakToggleBtn) {
+  speakToggleBtn.addEventListener("click", () => {
+    speakReplies = !speakReplies;
+    if (!speakReplies) stopSpeaking();
+    saveSpeakPref(speakReplies);
+    updateSpeakToggle();
+  });
+}
+
 coachBtn.addEventListener("click", () => {
   sendMessage("Stepping out of the practice round for a second — as a coach, what was strong or weak about my last point? Be honest and specific.");
 });
 
 newRoundBtn.addEventListener("click", () => {
+  stopSpeaking();
+  stopListening();
+  setVoiceStatus("");
   conversationHistory = [];
   groundingNoticeShown = false;
   messagesEl.innerHTML = "";
@@ -95,6 +262,8 @@ newRoundBtn.addEventListener("click", () => {
   scenarioInput.value = "";
   scenarioInput.focus();
 });
+
+initVoice();
 
 // ===== CORE FLOW =====
 async function startScenario() {
@@ -132,6 +301,7 @@ async function sendMessage(text, opts = {}) {
     const replyText = textFromContent(candidate.content) || "(no response text)";
     const isCoach = isCoachRequest(trimmed);
     addMessageBubble(replyText, isCoach ? "coach" : "ai");
+    speak(replyText); // read the opponent/coach back, never the sources panel
     addGroundingPanel(candidate.groundingMetadata);
     if (!grounded && !groundingNoticeShown) {
       addGroundingNotice();
@@ -294,6 +464,7 @@ function setLoading(isLoading) {
   loadingEl.classList.toggle("hidden", !isLoading);
   sendBtn.disabled = isLoading;
   coachBtn.disabled = isLoading;
+  if (micBtn) micBtn.disabled = isLoading;
   // Never re-enable the start button if there is no key to call with.
   startBtn.disabled = isLoading || !GEMINI_API_KEY;
 }
