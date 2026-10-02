@@ -35,8 +35,24 @@ If the user explicitly signals they want to step outside the practice round — 
 - Be specific: name the actual technique or issue involved, explain why it didn't work, and give 1-3 concrete alternative ways to phrase the point.
 - Once the user re-engages with a new point (not asking for more feedback), return to normal practice mode and its length rules.`;
 
+// Must stay in sync with the coach-mode triggers listed in SYSTEM_PROMPT above —
+// the model switches mode on these, so the bubble styling has to recognise them too.
+const COACH_TRIGGERS = [
+  "stepping out",
+  "step out",
+  "as a coach",
+  "give me feedback",
+  "what was wrong with that"
+];
+
+function isCoachRequest(text) {
+  const lower = text.toLowerCase();
+  return COACH_TRIGGERS.some((t) => lower.includes(t));
+}
+
 // ===== STATE =====
 let conversationHistory = []; // array of {role: "user"|"model", parts: [{text}]}
+let isSending = false; // guards against overlapping requests scrambling history order
 let groundingNoticeShown = false; // only warn once per round that grounding is unavailable
 
 // ===== DOM =====
@@ -88,13 +104,16 @@ async function startScenario() {
   setupScreen.classList.add("hidden");
   chatScreen.classList.remove("hidden");
 
+  addMessageBubble(`Practising: ${scenario}`, "context");
+
   const openingUserTurn = `I want to practice: ${scenario}. Set the scene with a real current local issue and give your opening point.`;
   await sendMessage(openingUserTurn, { hideUserBubble: true });
 }
 
 async function sendMessage(text, opts = {}) {
   const trimmed = text.trim();
-  if (!trimmed) return;
+  if (!trimmed || isSending) return;
+  isSending = true;
 
   if (!opts.hideUserBubble) {
     addMessageBubble(trimmed, "user");
@@ -111,7 +130,7 @@ async function sendMessage(text, opts = {}) {
     conversationHistory.push({ role: "model", parts: candidate.content.parts });
 
     const replyText = textFromContent(candidate.content) || "(no response text)";
-    const isCoach = trimmed.toLowerCase().includes("stepping out") || trimmed.toLowerCase().includes("as a coach");
+    const isCoach = isCoachRequest(trimmed);
     addMessageBubble(replyText, isCoach ? "coach" : "ai");
     addGroundingPanel(candidate.groundingMetadata);
     if (!grounded && !groundingNoticeShown) {
@@ -120,9 +139,13 @@ async function sendMessage(text, opts = {}) {
     }
   } catch (err) {
     console.error(err);
-    conversationHistory.pop(); // drop the unanswered user turn so history stays alternating
+    // Drop the unanswered user turn so history stays alternating.
+    if (conversationHistory[conversationHistory.length - 1]?.role === "user") {
+      conversationHistory.pop();
+    }
     addMessageBubble("Something went wrong talking to Gemini. Check the console and your API key.", "ai");
   } finally {
+    isSending = false;
     setLoading(false);
   }
 }
@@ -132,11 +155,24 @@ async function sendMessage(text, opts = {}) {
 // so grounding is a flag rather than a hard requirement.
 async function callGeminiWithFallback(history) {
   try {
-    return { candidate: await callGemini(history, { grounded: true }), grounded: true };
+    return { candidate: await callGroundedWithRetry(history), grounded: true };
   } catch (err) {
     if (err.status !== 429 && err.status !== 403) throw err;
     console.warn("Search grounding unavailable, retrying ungrounded:", err.message);
     return { candidate: await callGemini(history, { grounded: false }), grounded: false };
+  }
+}
+
+// 500/503 from Gemini means transient overload, not a bad request — one quick retry
+// is the difference between a hiccup and a dead round in front of judges.
+async function callGroundedWithRetry(history) {
+  try {
+    return await callGemini(history, { grounded: true });
+  } catch (err) {
+    if (err.status !== 500 && err.status !== 503) throw err;
+    console.warn("Gemini transient error, retrying once:", err.message);
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    return await callGemini(history, { grounded: true });
   }
 }
 
@@ -256,5 +292,7 @@ function addGroundingNotice() {
 function setLoading(isLoading) {
   loadingEl.classList.toggle("hidden", !isLoading);
   sendBtn.disabled = isLoading;
-  startBtn.disabled = isLoading;
+  coachBtn.disabled = isLoading;
+  // Never re-enable the start button if there is no key to call with.
+  startBtn.disabled = isLoading || !GEMINI_API_KEY;
 }
