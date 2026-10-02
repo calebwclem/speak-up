@@ -8,8 +8,8 @@
 - [x] Skeleton app built and in repo (index.html, style.css, app.js, firebase.json, README.md).
 - [x] API key inserted — lives in `public/config.js`, which is **gitignored** (template: `config.example.js`). Verified absent from git history.
 - [x] app.js model name + grounding syntax VERIFIED against Gemini API docs: `gemini-3.1-flash-lite` is a real stable endpoint and supports Search grounding; grounding tool field corrected to `google_search: {}` (snake_case, as documented for `:generateContent`). Response parsing + multi-turn history also fixed for Gemini 3 (multi-part replies, thought signatures).
-- [ ] Not yet tested locally in a browser. Serve with `python3 -m http.server 8777` from `public/`, then open http://localhost:8777/index.html. (No browser automation available to the assistant — this one needs a human.)
-- [ ] Not yet deployed. Firebase CLI v15 is now installed but **not logged in** — run `firebase login` (interactive), then `firebase use --add` to write `.firebaserc`.
+- [x] Tested locally in a browser — real Gemini response, persona and coach button both working. Grounding fell back (see blocker).
+- [x] DEPLOYED: https://gen-lang-client-0428218194.web.app (Firebase Hosting, project `gen-lang-client-0428218194` — the same project that owns the Gemini key). Redeploy with `firebase deploy --only hosting`.
 - [ ] Cloud credits: billing account linked to the project, but **Search grounding still returns 429**.
 
 ## ⚠️ OPEN BLOCKER: Search grounding returns 429

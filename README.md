@@ -50,7 +50,7 @@ firebase deploy --only hosting
 ```
 
 ## Try it
-[Live URL — add after deploy]
+**https://gen-lang-client-0428218194.web.app**
 
 ## What's next
 With more time: saved session history (Firestore) to track growth over turns, voice input/output for a more realistic rehearsal, and a wider library of scenario types.
