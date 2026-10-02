@@ -1,4 +1,4 @@
-# DEMO.md — 5-minute table demo
+# DEMO.md — Speak Up: 5-minute table demo
 
 Judges come to the table. ~5 minutes total including 1–2 questions, so the
 walkthrough itself needs to land in about 3.5. All four judging criteria are

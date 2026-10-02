@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "speak-up-app",
     "public": "public",
     "ignore": [
       "firebase.json",

@@ -1,6 +1,6 @@
-# Practice Partner
+# Speak Up
 
-A practice partner for high-stakes conversations — built for people who don't often get to rehearse speaking up before it counts: immigrants and English-language learners preparing for civic participation, first-generation professionals preparing for interviews or negotiations, and anyone who feels unprepared or unheard in these moments.
+A rehearsal partner for high-stakes conversations — built for people who don't often get to rehearse speaking up before it counts: immigrants and English-language learners preparing for civic participation, first-generation professionals preparing for interviews or negotiations, and anyone who feels unprepared or unheard in these moments.
 
 ## The problem
 Confidently speaking up — at a city council meeting, in a job interview, in a negotiation — is a skill, and like any skill it takes practice. But many people never get a low-stakes space to rehearse it: no one to push back on their argument, point out the weak spots, or help them find a stronger way to say it.
@@ -50,7 +50,7 @@ firebase deploy --only hosting
 ```
 
 ## Try it
-**https://gen-lang-client-0428218194.web.app**
+**https://speak-up-app.web.app**
 
 ## What's next
 With more time: saved session history (Firestore) to track growth over turns, voice input/output for a more realistic rehearsal, and a wider library of scenario types.

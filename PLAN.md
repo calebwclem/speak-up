@@ -9,7 +9,7 @@
 - [x] API key inserted — lives in `public/config.js`, which is **gitignored** (template: `config.example.js`). Verified absent from git history.
 - [x] app.js model name + grounding syntax VERIFIED against Gemini API docs: `gemini-3.1-flash-lite` is a real stable endpoint and supports Search grounding; grounding tool field corrected to `google_search: {}` (snake_case, as documented for `:generateContent`). Response parsing + multi-turn history also fixed for Gemini 3 (multi-part replies, thought signatures).
 - [x] Tested locally in a browser — real Gemini response, persona and coach button both working. Grounding fell back (see blocker).
-- [x] DEPLOYED: https://gen-lang-client-0428218194.web.app (Firebase Hosting, project `gen-lang-client-0428218194` — the same project that owns the Gemini key). Redeploy with `firebase deploy --only hosting`.
+- [x] DEPLOYED: https://speak-up-app.web.app (Firebase Hosting, project `gen-lang-client-0428218194` — the same project that owns the Gemini key). Redeploy with `firebase deploy --only hosting`.
 - [ ] Cloud credits: billing account linked to the project, but **Search grounding still returns 429**.
 
 ## ⚠️ OPEN BLOCKER: Search grounding returns 429

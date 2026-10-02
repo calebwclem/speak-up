@@ -6,7 +6,7 @@ NOT YET DONE: API key inserted into app.js, tested end-to-end locally, verified 
 Submission deadline: 4:45 PM. ShipYard link shared during event — ask organizers what exactly it requires (repo? live URL? video?) if not yet confirmed.
 
 ## Project
-A debate / difficult-conversation practice partner, built for the **GDG "Build with AI for Social Good" track**.
+**Speak Up** — a debate / difficult-conversation practice partner, built for the **GDG "Build with AI for Social Good" track**.
 
 **Who it's for:** people who don't often get to rehearse high-stakes speaking situations before they matter — immigrants and English-language learners preparing for civic participation (public comment at a city council meeting, a citizenship interview), first-generation professionals preparing for interviews or negotiations, and others who may feel unprepared or unheard in these moments.
 
