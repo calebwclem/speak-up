@@ -36,7 +36,7 @@ If the user explicitly signals they want to step outside the practice round — 
 - Once the user re-engages with a new point (not asking for more feedback), return to normal practice mode and its length rules.`;
 
 // Must stay in sync with the coach-mode triggers listed in SYSTEM_PROMPT above —
-// the model switches mode on these, so the bubble styling has to recognise them too.
+// the model switches mode on these, so the bubble styling has to recognize them too.
 const COACH_TRIGGERS = [
   "stepping out",
   "step out",
@@ -125,8 +125,8 @@ function initVoice() {
   if (!SpeechRecognitionCtor) {
     // Firefox has no speech recognition; typing still works, so just say so.
     [micBtn, setupMicBtn].forEach((b) => b && b.classList.add("hidden"));
-    setVoiceStatus(setupVoiceStatusEl, "Voice input needs Chrome, Edge or Safari — typing works everywhere.");
-    setVoiceStatus(voiceStatusEl, "Voice input needs Chrome, Edge or Safari — typing works everywhere.");
+    setVoiceStatus(setupVoiceStatusEl, "Voice input needs Chrome, Edge, or Safari — typing works everywhere.");
+    setVoiceStatus(voiceStatusEl, "Voice input needs Chrome, Edge, or Safari — typing works everywhere.");
     console.info("[voice] SpeechRecognition unavailable in this browser.");
     return;
   }
@@ -272,7 +272,7 @@ function startListening(target) {
       if (event.results[i].isFinal) final += chunk;
       else interim += chunk;
     }
-    // Show words landing as they are recognised, so a mishearing is visible early.
+    // Show words landing as they are recognized, so a mishearing is visible early.
     target.input.value = (final || interim).trim();
     console.info("[voice] onresult", { interim, final });
     if (final.trim()) {
@@ -286,7 +286,7 @@ function startListening(target) {
   recognition.onerror = (event) => {
     const messages = {
       "not-allowed": "Microphone blocked. Click the icon in the address bar and allow the mic, then try again.",
-      "service-not-allowed": "The browser blocked speech recognition. Try Chrome, or type instead.",
+      "service-not-allowed": "This browser blocked speech recognition. Try Safari or Edge, or type instead.",
       "no-speech": "Didn't catch anything — tap the mic and speak a little louder.",
       "audio-capture": "No microphone found. Check your input device, or type instead.",
       "network": "Speech recognition needs a network connection to Google's service. Type instead.",
@@ -407,7 +407,7 @@ async function startScenario() {
   setupScreen.classList.add("hidden");
   chatScreen.classList.remove("hidden");
 
-  addMessageBubble(`Practising: ${scenario}`, "context");
+  addMessageBubble(`Practicing: ${scenario}`, "context");
 
   const openingUserTurn = `I want to practice: ${scenario}. Set the scene with a real current local issue and give your opening point.`;
   await sendMessage(openingUserTurn, { hideUserBubble: true });

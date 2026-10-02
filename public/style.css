@@ -282,7 +282,7 @@ button:disabled {
   50%      { box-shadow: 0 0 0 7px rgba(168, 50, 50, 0); }
 }
 
-/* Honour a reduced-motion preference — the colour change already signals state. */
+/* Honor a reduced-motion preference — the color change already signals state. */
 @media (prefers-reduced-motion: reduce) {
   #mic-btn.listening {
     animation: none;

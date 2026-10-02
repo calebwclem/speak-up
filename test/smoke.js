@@ -137,8 +137,8 @@ const classes = () => msgs().map((m) => m.className);
   console.log("\n1b. Voice degrades without Web Speech support");
   check("chat mic hidden when recognition unsupported", registry["mic-btn"].classList.contains("hidden"), true);
   check("setup mic hidden too", registry["setup-mic-btn"].classList.contains("hidden"), true);
-  check("setup status explains why", registry["setup-voice-status"].textContent.includes("Chrome, Edge or Safari"), true);
-  check("status explains why", registry["voice-status"].textContent.includes("Chrome, Edge or Safari"), true);
+  check("setup status explains why", registry["setup-voice-status"].textContent.includes("Chrome, Edge, or Safari"), true);
+  check("status explains why", registry["voice-status"].textContent.includes("Chrome, Edge, or Safari"), true);
   check("speak toggle hidden without synthesis", registry["speak-toggle-btn"].classList.contains("hidden"), true);
   check("no exception reached the app", typeof app.sendMessage, "function");
 

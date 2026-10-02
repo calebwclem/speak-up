@@ -114,7 +114,7 @@ to a specific debugging story and badly to a vague one.
 > "The response carries the actual queries it ran and the source URLs. They're
 > on screen and they're clickable — that's not something the model can fake."
 
-**"What stops someone practising a harmful position?"**
+**"What stops someone practicing a harmful position?"**
 > "Honest answer: nothing structural yet. It's a rehearsal tool with a skeptical
 > opponent, so a weak or bad-faith argument gets pushed back on rather than
 > affirmed. Real deployment would need a content policy and a community partner
