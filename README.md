@@ -34,6 +34,14 @@ still deploys it, because `firebase.json` only ignores dotfiles and `node_module
 > the key to the Hosting domain in the Cloud console, and move the call into a Cloud
 > Function before this goes anywhere real.
 
+## Tests
+```bash
+node test/smoke.js
+```
+Runs `public/app.js` against a small DOM shim and a stubbed Gemini API — no browser,
+no network, no API key. Covers the grounded path, the ungrounded fallback, the 503
+retry, coach-mode detection, conversation-history integrity and the missing-key guard.
+
 ## Deploying
 ```bash
 firebase login
