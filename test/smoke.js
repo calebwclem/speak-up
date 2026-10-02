@@ -118,7 +118,7 @@ ${src}
 module.exports = {
   startScenario, sendMessage, textFromContent,
   history: () => conversationHistory,
-  reset: () => { conversationHistory = []; groundingNoticeShown = false; messagesEl.children = []; },
+  reset: () => { conversationHistory = []; userPoints = []; groundingNoticeShown = false; messagesEl.children = []; },
   messages: () => messagesEl.children
 };
 `;
@@ -171,15 +171,30 @@ const classes = () => msgs().map((m) => m.className);
   await app.sendMessage("what was wrong with that");
   check("alternate trigger also styled as coach", classes().slice(-2), ["message user", "message coach"]);
 
-  console.log("\n4d. Round report asks about the whole round");
+  console.log("\n4d. Round report quotes the real transcript");
   requests = [];
-  queue = [groundedReply("Across the round you leaned on anecdote twice.")];
+  queue = [plainReply("Across the round you leaned on anecdote twice.")];
   registry["report-btn"].dispatch("click");
   await new Promise((r) => setTimeout(r, 10));
   const sent = requests[0].contents[requests[0].contents.length - 1].parts[0].text;
   check("prompt covers the whole round, not one point", sent.includes("whole round, not just my last point"), true);
+  check("the user's real words are quoted into the prompt",
+        sent.includes('"Stepping out of the practice round — give me feedback"'), true);
+  check("canned button prompts are NOT counted as the user's points",
+        sent.includes("ONLY things I actually said") && !sent.includes("Set the scene with a real"), true);
+  check("fabrication is forbidden explicitly",
+        sent.includes("Do not attribute any claim"), true);
   check("report styled distinctly from coach", classes().slice(-2), ["message context", "message report"]);
   check("the long prompt is not shown as a user bubble", classes().filter((c) => c === "message user").length, 2);
+
+  console.log("\n4e. Report and coach refuse to run with nothing to report on");
+  app.reset();
+  const before4e = requests.length;
+  registry["report-btn"].dispatch("click");
+  registry["coach-btn"].dispatch("click");
+  await new Promise((r) => setTimeout(r, 10));
+  check("no request made with zero user points", requests.length, before4e);
+  check("told the user why", classes().slice(-2), ["message context", "message context"]);
 
   console.log("\n5. Search unavailable — the round says so instead of faking it");
   app.reset();

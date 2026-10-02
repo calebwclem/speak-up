@@ -50,16 +50,35 @@ function isCoachRequest(text) {
   return COACH_TRIGGERS.some((t) => lower.includes(t));
 }
 
-const ROUND_REPORT_PROMPT = `Stepping out of the practice round now — as a coach, give me a report on the whole round, not just my last point. Cover three things, briefly and in plain language:
-1. The strongest point I made, and specifically why it landed.
-2. The habit or pattern that weakened me most across the whole exchange — name it directly, and point to where it showed up more than once.
+// The report used to ask the model to recall the round from memory, and it would
+// occasionally invent a point and attribute it to the user. Handing it the exact
+// turns and forbidding unquoted claims removes the room to invent.
+function buildRoundReportPrompt() {
+  const numbered = userPoints.map((p, i) => `${i + 1}. "${p}"`).join("\n");
+  return `Stepping out of the practice round now — as a coach, give me a report on the whole round, not just my last point.
+
+These are the ONLY things I actually said this round, quoted exactly:
+${numbered}
+
+Rules you must follow:
+- Quote my words verbatim from the numbered list above when referring to what I said.
+- Do not attribute any claim, statistic, example, or argument to me that is not in that list. If I did not say it, I did not say it.
+- If you cannot support a point with a direct quote from the list, leave that point out of the report.
+- If you quote your own earlier words as the opponent, say so explicitly so it is never mistaken for something I said.
+
+Cover three things, briefly and in plain language:
+1. The strongest point I made, quoting it, and specifically why it landed.
+2. The habit or pattern that weakened me most across the round — name it directly and quote the turns where it showed up.
 3. Two concrete phrasings I should try next time, written as I would actually say them out loud.
+
 Be honest. If something genuinely did not work, say so plainly.`;
+}
 
 // ===== STATE =====
 let conversationHistory = []; // array of {role: "user"|"model", parts: [{text}]}
 let isSending = false; // guards against overlapping requests scrambling history order
 let groundingNoticeShown = false; // only warn once per round that grounding is unavailable
+let userPoints = []; // only the user's real arguments, not canned button prompts
 
 // ===== DOM =====
 const setupScreen = document.getElementById("setup-screen");
@@ -388,13 +407,25 @@ if (speakToggleBtn) {
 
 if (reportBtn) {
   reportBtn.addEventListener("click", () => {
+    if (userPoints.length === 0) {
+      addMessageBubble("Make at least one point first — there's nothing to report on yet.", "context");
+      return;
+    }
     addMessageBubble("End of round — coaching report", "context");
-    sendMessage(ROUND_REPORT_PROMPT, { hideUserBubble: true, bubbleType: "report" });
+    sendMessage(buildRoundReportPrompt(), { hideUserBubble: true, bubbleType: "report", canned: true });
   });
 }
 
 coachBtn.addEventListener("click", () => {
-  sendMessage("Stepping out of the practice round for a second — as a coach, what was strong or weak about my last point? Be honest and specific.");
+  const last = userPoints[userPoints.length - 1];
+  if (!last) {
+    addMessageBubble("Make a point first, then I can give you feedback on it.", "context");
+    return;
+  }
+  sendMessage(
+    `Stepping out of the practice round for a second — as a coach, what was strong or weak about my last point? My exact words were: "${last}". Quote only what I actually said; do not attribute anything to me that isn't in that quote. Be honest and specific.`,
+    { canned: true }
+  );
 });
 
 newRoundBtn.addEventListener("click", () => {
@@ -403,6 +434,7 @@ newRoundBtn.addEventListener("click", () => {
   setVoiceStatus(voiceStatusEl, "");
   setVoiceStatus(setupVoiceStatusEl, "");
   conversationHistory = [];
+  userPoints = [];
   groundingNoticeShown = false;
   messagesEl.innerHTML = "";
   chatScreen.classList.add("hidden");
@@ -442,7 +474,7 @@ async function startScenario() {
   const openingUserTurn = issue
     ? `I want to practice: ${scenario}. Use this real, current issue as the scenario: ${issue.text} State it in one short clause and give your opening point in character.`
     : `I want to practice: ${scenario}. Set the scene with a real current local issue and give your opening point.`;
-  await sendMessage(openingUserTurn, { hideUserBubble: true });
+  await sendMessage(openingUserTurn, { hideUserBubble: true, canned: true });
 }
 
 async function sendMessage(text, opts = {}) {
@@ -456,6 +488,7 @@ async function sendMessage(text, opts = {}) {
   messageInput.value = "";
   setLoading(true);
 
+  if (!opts.canned) userPoints.push(trimmed);
   conversationHistory.push({ role: "user", parts: [{ text: trimmed }] });
 
   try {
