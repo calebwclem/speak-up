@@ -13,7 +13,7 @@ loud** — don't make them infer anything below.
 - [ ] Microphone permission already granted on the demo browser, and the mic tested once.
 - [ ] If the room is loud, turn **🔊 off** before demoing voice input so the reply audio
       does not get picked up by the mic mid-round.
-- [ ] Know whether grounding is live. If it fell back, say so up front — see Hardships.
+- [ ] Run one round and confirm the sources panel appears. If it says ungrounded, say so up front.
 
 ## The script
 
@@ -99,10 +99,16 @@ to a specific debugging story and badly to a vague one.
 
 - **Search grounding is gated behind billing.** Grounded calls returned 429
   RESOURCE_EXHAUSTED on the free tier regardless of model, while identical
-  ungrounded calls returned 200. Grounding draws on a separate quota that needs
-  the project upgraded to a paid tier — linking a Cloud billing account isn't
-  enough on its own. We traced it by isolating the one variable (the search
-  tool) rather than guessing, and redeemed the event credits to unblock it.
+  ungrounded calls returned 200 — so we knew the key and model were fine and the
+  feature was gated. It needs the project on a paid tier; linking a billing
+  account isn't enough on its own.
+- **Then grounding worked and still wasn't trustworthy.** Asking the persona to
+  search and argue in one call, it only actually searched about two times in
+  three — the rest it answered from memory, which looks grounded without being
+  grounded. We measured it (4 trials per variant), found prompt wording didn't
+  fix it and a bigger model cost 8-10s per turn, and split it into a dedicated
+  search call plus a persona call. Now 4/4 grounded, and turns got faster
+  because the persona call no longer carries the search tool.
 - **We verified the API surface instead of trusting assumptions.** The model
   name and grounding field in our first draft were written from memory. We
   checked both against the live docs before debugging anything else.

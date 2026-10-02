@@ -423,7 +423,25 @@ async function startScenario() {
 
   addMessageBubble(`Practicing: ${scenario}`, "context");
 
-  const openingUserTurn = `I want to practice: ${scenario}. Set the scene with a real current local issue and give your opening point.`;
+  setLoading(true);
+  let issue = null;
+  try {
+    issue = await findCurrentIssue(scenario);
+  } catch (err) {
+    console.warn("Issue search unavailable:", err.message);
+  }
+
+  if (issue) {
+    addGroundingPanel(issue.groundingMetadata);
+  } else if (!groundingNoticeShown) {
+    // Say so rather than letting an unsearched scenario pass as a grounded one.
+    addGroundingNotice();
+    groundingNoticeShown = true;
+  }
+
+  const openingUserTurn = issue
+    ? `I want to practice: ${scenario}. Use this real, current issue as the scenario: ${issue.text} State it in one short clause and give your opening point in character.`
+    : `I want to practice: ${scenario}. Set the scene with a real current local issue and give your opening point.`;
   await sendMessage(openingUserTurn, { hideUserBubble: true });
 }
 
@@ -441,7 +459,7 @@ async function sendMessage(text, opts = {}) {
   conversationHistory.push({ role: "user", parts: [{ text: trimmed }] });
 
   try {
-    const { candidate, grounded } = await callGeminiWithFallback(conversationHistory);
+    const candidate = await callWithRetry(conversationHistory);
     // Push the model's parts back verbatim so thought signatures survive into the
     // next turn — Gemini 3 uses them to keep reasoning context across calls.
     conversationHistory.push({ role: "model", parts: candidate.content.parts });
@@ -450,11 +468,6 @@ async function sendMessage(text, opts = {}) {
     const bubbleType = opts.bubbleType || (isCoachRequest(trimmed) ? "coach" : "ai");
     addMessageBubble(replyText, bubbleType);
     speak(replyText); // read the opponent/coach back, never the sources panel
-    addGroundingPanel(candidate.groundingMetadata);
-    if (!grounded && !groundingNoticeShown) {
-      addGroundingNotice();
-      groundingNoticeShown = true;
-    }
   } catch (err) {
     console.error(err);
     // Drop the unanswered user turn so history stays alternating.
@@ -469,39 +482,66 @@ async function sendMessage(text, opts = {}) {
   }
 }
 
-// Search grounding draws on a separate quota that needs billing enabled on the
-// key's Cloud project. If it is unavailable we still want a usable practice round,
-// so grounding is a flag rather than a hard requirement.
-async function callGeminiWithFallback(history) {
-  try {
-    return { candidate: await callGroundedWithRetry(history), grounded: true };
-  } catch (err) {
-    if (err.status !== 429 && err.status !== 403) throw err;
-    console.warn("Search grounding unavailable, retrying ungrounded:", err.message);
-    return { candidate: await callGemini(history, { grounded: false }), grounded: false };
+// Asking the persona to both search and argue in one call is unreliable — it
+// skipped the search roughly a third of the time and answered from memory, which
+// looks grounded without being grounded. So the search is its own call, with one
+// job, and the result is handed to the persona as the scenario.
+async function findCurrentIssue(topic) {
+  const body = {
+    contents: [{
+      role: "user",
+      parts: [{
+        text: `Find one real, specific local civic issue related to "${topic}" that is currently being debated, is on a city council agenda, or is in the news right now. Name the place and the specific proposal, measure, or agenda item in one or two sentences. Be concrete and current — this must be a real issue, not a hypothetical.`
+      }]
+    }],
+    tools: [{ google_search: {} }]
+  };
+
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    const err = new Error(`Issue search failed ${res.status}: ${await res.text()}`);
+    err.status = res.status;
+    throw err;
   }
+
+  const data = await res.json();
+  const candidate = data.candidates?.[0];
+  if (!candidate?.content) throw new Error("Issue search returned no candidate");
+
+  const metadata = candidate.groundingMetadata;
+  // No search metadata means it answered from memory — not good enough to claim.
+  if (!metadata?.groundingChunks?.length) {
+    console.warn("[grounding] search tool was not used for this topic");
+    return null;
+  }
+  return { text: textFromContent(candidate.content), groundingMetadata: metadata };
 }
 
 // 500/503 from Gemini means transient overload, not a bad request — one quick retry
 // is the difference between a hiccup and a dead round in front of judges.
-async function callGroundedWithRetry(history) {
+async function callWithRetry(history) {
   try {
-    return await callGemini(history, { grounded: true });
+    return await callGemini(history);
   } catch (err) {
     if (err.status !== 500 && err.status !== 503) throw err;
     console.warn("Gemini transient error, retrying once:", err.message);
     await new Promise((resolve) => setTimeout(resolve, 1200));
-    return await callGemini(history, { grounded: true });
+    return await callGemini(history);
   }
 }
 
-async function callGemini(history, { grounded = true } = {}) {
+async function callGemini(history) {
+  // No search tool here: the real issue is found up front by findCurrentIssue, and
+  // the rest of the round is argument, which needs reasoning rather than lookup.
   const body = {
     contents: history,
     systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] }
   };
-  // Field name per current Gemini API docs; camelCase googleSearch also works.
-  if (grounded) body.tools = [{ google_search: {} }];
 
   const res = await fetch(API_URL, {
     method: "POST",
@@ -602,8 +642,8 @@ function addGroundingNotice() {
   const note = document.createElement("div");
   note.className = "grounding grounding-warn";
   note.textContent =
-    "Practicing without live grounding — the Google Search quota is unavailable, " +
-    "so this scenario isn't tied to a verified current issue.";
+    "Practicing without live grounding — this round isn't tied to a verified " +
+    "current issue, so treat the scenario as illustrative rather than factual.";
   messagesEl.appendChild(note);
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }

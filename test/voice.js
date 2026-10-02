@@ -118,7 +118,7 @@ module.exports = { speak, startListening, isSupported: () => !!SpeechRecognition
   recognitions[0].emitResult("public comment on a housing proposal", true);
   await new Promise((r) => setTimeout(r, 10));
   check("scenario input filled", registry["scenario-input"].value, "public comment on a housing proposal");
-  check("a request went out", fetchCalls, 1);
+  check("search call then persona call", fetchCalls, 2);
 
   console.log("\n4. The reply is spoken aloud");
   check("utterance queued", spoken.includes("Counter-point."), true);

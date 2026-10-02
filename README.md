@@ -6,10 +6,17 @@ A rehearsal partner for high-stakes conversations — built for people who don't
 Confidently speaking up — at a city council meeting, in a job interview, in a negotiation — is a skill, and like any skill it takes practice. But many people never get a low-stakes space to rehearse it: no one to push back on their argument, point out the weak spots, or help them find a stronger way to say it.
 
 ## How it works
-You describe a situation you want to practice. Gemini, grounded with live Google Search, finds a real, current local issue related to your topic and plays a skeptical opposing voice — pushing back, engaging seriously with strong points, and calling out weak reasoning. At any point you can step out and ask for direct coaching feedback: what worked, what didn't, and how to say it better. At the end of a round, one button produces a report on the whole exchange — your strongest point, the habit that weakened you across turns, and specific phrasings to try next time.
+You describe a situation you want to practice. Gemini runs a live Google Search to find a real, current local issue related to your topic — the actual queries and source links are shown on screen — and then plays a skeptical opposing voice — pushing back, engaging seriously with strong points, and calling out weak reasoning. At any point you can step out and ask for direct coaching feedback: what worked, what didn't, and how to say it better. At the end of a round, one button produces a report on the whole exchange — your strongest point, the habit that weakened you across turns, and specific phrasings to try next time.
 
 ## Why Gemini
 Gemini's Google Search grounding is core to how this works — it's not a decorative chatbot layer, it's what lets every practice round be based on a real, current, specific issue instead of a generic made-up scenario. Gemini's reasoning is also what calibrates the response to argument quality — engaging seriously with strong points, naming fallacies in weak ones, and switching fluidly between "opponent" and "coach" modes on request.
+
+## How grounding works
+Finding the issue and arguing about it are two separate Gemini calls. Asking one call to do
+both meant the model often skipped the search and answered from memory, which looks grounded
+without being grounded. Now a dedicated search call finds the issue and returns its sources,
+which are rendered under the scenario; the persona then argues that issue. If the search
+fails or returns nothing, the app says the round is ungrounded instead of pretending.
 
 ## Voice
 Hit the 🎤 and speak your point instead of typing it — the rehearsal is a spoken one,

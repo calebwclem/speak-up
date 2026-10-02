@@ -12,21 +12,17 @@
 - [x] DEPLOYED: https://speak-up-app.web.app (Firebase Hosting, project `gen-lang-client-0428218194` — the same project that owns the Gemini key). Redeploy with `firebase deploy --only hosting`.
 - [ ] Cloud credits: billing account linked to the project, but **Search grounding still returns 429**.
 
-## ⚠️ OPEN BLOCKER: Search grounding returns 429
-Confirmed by direct API calls, repeatedly, over ~40 minutes:
-- `gemini-3.1-flash-lite` **ungrounded** → 200 OK. Key is valid, model name is right.
-- Same model **with `google_search`** → 429 RESOURCE_EXHAUSTED. Same for other models.
-- Both `google_search` and `googleSearch` behave identically, so field spelling is not the cause.
+## ✅ RESOLVED: Search grounding
+Free tier has no Search grounding quota — grounded calls returned 429 while identical
+ungrounded calls returned 200. Linking a billing account was not enough; the project had
+to be moved to a paid tier (done, $10 prepay).
 
-Cause: Search grounding draws on a **separate quota that requires the project on a paid
-tier**. Linking a Cloud billing account is NOT sufficient — the upgrade has to be completed
-through **"Set up billing" in AI Studio** (https://aistudio.google.com/apikey) for the project
-that owns this key. Tier changes then apply within ~10 minutes. Watch out: that flow may ask
-for a Prepay minimum — use the event billing account, never a personal card.
-
-Impact is contained: the app falls back to an ungrounded round with a visible notice, so the
-demo works either way. But grounding is the Track Application argument, so this stays priority #1.
-- [ ] Organizer questions (pre-event code allowance, exact ShipYard requirements) — resolve ASAP this morning if not already answered; don't block building on this, just note the answer once known.
+A second problem surfaced once quota worked: asking the persona to search AND argue in one
+call only searched ~2 of 3 times, answering from memory the rest — which looks grounded
+without being grounded. Fixed by splitting it: a dedicated grounded search call finds the
+real issue (4/4 reliable, ~2.5s), then the persona argues it with no search tool (~1.1s).
+Conversation turns are now FASTER than before, and when the search genuinely fails the app
+says so rather than passing an unsearched scenario off as current.
 
 ## FIRST THING TO DO RIGHT NOW
 1. Complete "Set up billing" in AI Studio for the key's project (see blocker above) — unblocks grounding.

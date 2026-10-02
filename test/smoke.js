@@ -118,6 +118,7 @@ ${src}
 module.exports = {
   startScenario, sendMessage, textFromContent,
   history: () => conversationHistory,
+  reset: () => { conversationHistory = []; groundingNoticeShown = false; messagesEl.children = []; },
   messages: () => messagesEl.children
 };
 `;
@@ -142,29 +143,33 @@ const classes = () => msgs().map((m) => m.className);
   check("speak toggle hidden without synthesis", registry["speak-toggle-btn"].classList.contains("hidden"), true);
   check("no exception reached the app", typeof app.sendMessage, "function");
 
-  console.log("\n2. Grounded opening round");
-  queue = [groundedReply("Look, the height limit exists for a reason.")];
+  console.log("\n2. Grounded opening round (search call, then persona call)");
+  queue = [groundedReply("Berkeley is debating height limits on College Ave."),
+           plainReply("Look, the height limit exists for a reason.")];
   registry["scenario-input"].value = "public comment on a local housing proposal";
   await app.startScenario();
-  check("context + reply + grounding panel rendered", classes(), ["message context", "message ai", "grounding"]);
-  check("grounding tool sent on the request", requests[0].tools, [{ google_search: {} }]);
-  check("system instruction sent", typeof requests[0].systemInstruction.parts[0].text, "string");
+  check("context, sources, then the reply", classes(), ["message context", "grounding", "message ai"]);
+  check("two calls were made", requests.length, 2);
+  check("search tool on the FIRST call only", requests[0].tools, [{ google_search: {} }]);
+  check("persona call carries no search tool", requests[1].tools, undefined);
+  check("the found issue is handed to the persona",
+        requests[1].contents[0].parts[0].text.includes("Berkeley is debating height limits"), true);
+  check("system instruction on the persona call", typeof requests[1].systemInstruction.parts[0].text, "string");
   check("history is user then model", app.history().map((h) => h.role), ["user", "model"]);
-  check("thought signature preserved in history", app.history()[1].parts[0].thoughtSignature, "sig-abc");
-  check("reply text excludes the thought part", msgs()[1].textContent, "Look, the height limit exists for a reason.");
-  const panel = msgs()[2];
+  check("reply text rendered", msgs()[2].textContent, "Look, the height limit exists for a reason.");
+  const panel = msgs()[1];
   check("panel shows the query", panel.children[1].textContent.includes("berkeley college ave"), true);
   check("panel links the real source", panel.children[2].children[0].children[0].href, "https://berkeleyside.org/x");
 
   console.log("\n3. Coach mode styling");
   queue = [groundedReply("Here is what did not land.")];
   await app.sendMessage("Stepping out of the practice round — give me feedback");
-  check("coach reply styled as coach", classes().slice(3), ["message user", "message coach", "grounding"]);
+  check("coach reply styled as coach", classes().slice(-2), ["message user", "message coach"]);
 
   console.log("\n4. Trigger the model does not share a phrase with the button");
   queue = [groundedReply("Specifics.")];
   await app.sendMessage("what was wrong with that");
-  check("alternate trigger also styled as coach", classes().slice(6, 8), ["message user", "message coach"]);
+  check("alternate trigger also styled as coach", classes().slice(-2), ["message user", "message coach"]);
 
   console.log("\n4d. Round report asks about the whole round");
   requests = [];
@@ -173,27 +178,32 @@ const classes = () => msgs().map((m) => m.className);
   await new Promise((r) => setTimeout(r, 10));
   const sent = requests[0].contents[requests[0].contents.length - 1].parts[0].text;
   check("prompt covers the whole round, not one point", sent.includes("whole round, not just my last point"), true);
-  check("report styled distinctly from coach", classes().slice(-3), ["message context", "message report", "grounding"]);
+  check("report styled distinctly from coach", classes().slice(-2), ["message context", "message report"]);
   check("the long prompt is not shown as a user bubble", classes().filter((c) => c === "message user").length, 2);
 
-  console.log("\n5. Grounding quota exhausted — fallback");
+  console.log("\n5. Search unavailable — the round says so instead of faking it");
+  app.reset();
   requests = [];
-  queue = [errReply(429), plainReply("Fine, no sources then.")];
-  await app.sendMessage("Density near transit lowers car trips.");
-  check("retried without the grounding tool", requests[1].tools, undefined);
-  check("notice rendered once", classes().filter((c) => c.includes("grounding-warn")).length, 1);
+  queue = [errReply(429), plainReply("No sources, but here is my position.")];
+  registry["scenario-input"].value = "public comment on a local housing proposal";
+  await app.startScenario();
+  check("notice rendered", classes().filter((c) => c.includes("grounding-warn")).length, 1);
+  check("no sources panel claimed", classes().filter((c) => c === "grounding").length, 0);
+  check("the round still runs", classes().filter((c) => c === "message ai").length, 1);
 
-  console.log("\n6. Notice does not repeat on the next ungrounded turn");
-  queue = [errReply(429), plainReply("Still no sources.")];
-  await app.sendMessage("Second point.");
-  check("still only one notice", classes().filter((c) => c.includes("grounding-warn")).length, 1);
+  console.log("\n6. A 200 with no search metadata also counts as ungrounded");
+  app.reset();
+  queue = [plainReply("I know a thing about housing."), plainReply("Opening point.")];
+  await app.startScenario();
+  check("unsearched answer does not pass as grounded", classes().filter((c) => c === "grounding").length, 0);
+  check("notice shown instead", classes().filter((c) => c.includes("grounding-warn")).length, 1);
 
   console.log("\n7. Transient 503 retries");
   requests = [];
   queue = [{ status: 503, body: { error: { code: 503 } } }, groundedReply("Recovered.")];
   await app.sendMessage("Third point.");
   check("two grounded attempts were made", requests.length, 2);
-  check("reply rendered after the retry", msgs()[msgs().length - 2].textContent, "Recovered.");
+  check("reply rendered after the retry", msgs()[msgs().length - 1].textContent, "Recovered.");
 
   console.log("\n8. Hard failure leaves history alternating");
   const before = app.history().length;
