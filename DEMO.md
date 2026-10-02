@@ -20,7 +20,7 @@ loud** — don't make them infer anything below.
 **1. Problem + who it's for (~30s)** — *Idea*
 
 > "Speaking up in a high-stakes moment is a skill, and like any skill it takes
-> practice. But most people never get a safe space to rehearse it. We built this
+> practice. But most people never get a safe space to rehearse it. I built this
 > for people who get that chance least often — immigrants and English-language
 > learners preparing to give public comment at a city meeting or sit a
 > citizenship interview, and first-generation professionals walking into a
@@ -46,7 +46,7 @@ a generic chatbot wrapper cannot do.
 
 Hit the 🎤, say your next point out loud, let the reply read itself back.
 
-> "This is the part that matters for who we built it for. You're not typing an essay —
+> "This is the part that matters for who I built it for. You're not typing an essay —
 > you're saying it out loud and hearing someone push back, which is the thing you're
 > actually about to do at the microphone."
 
@@ -82,7 +82,7 @@ mid-argument, and it is the moment that reads as coaching rather than chatting.
 
 **5. The rest of the track box (~30s)** — *Track Application*
 
-> "Beyond Gemini we're on Firebase Hosting for the deploy, and the Google Cloud
+> "Beyond Gemini, I'm using Firebase Hosting for the deploy, and the Google Cloud
 > credits from the event are what fund the Search grounding quota — that's a
 > paid Gemini feature, not the free tier."
 
@@ -119,7 +119,7 @@ Say these out loud. Judges score what you say, not what they infer.
 ### 3. What makes it unique (~30s)
 
 > "Three things. First, it's grounded in reality — every round is built on an
-> actual city council agenda item or live policy debate, and we show you the
+> actual city council agenda item or live policy debate, and I show you the
 > search queries and the source links so you can check. Second, it calibrates: it
 > names the fallacy when you make a weak argument, and concedes when you make a
 > strong one, instead of agreeing with everything. Third, it's a coach as well as
@@ -132,18 +132,18 @@ Say these out loud. Judges score what you say, not what they infer.
 Lead with Gemini, name the specific tool use, then the architecture decision.
 
 > "The core is the **Gemini API** — `gemini-3.1-flash-lite` — with the **Google
-> Search grounding tool**. And the interesting part is *how* we use it, because the
+> Search grounding tool**. And the interesting part is *how* I use it, because the
 > obvious way doesn't work.
 >
-> We first tried a single call: give Gemini the grounding tool and ask it to find a
-> real issue and argue it. We tested that, and it only actually ran a search about
+> I first tried a single call: give Gemini the grounding tool and ask it to find a
+> real issue and argue it. I tested that, and it only actually ran a search about
 > two times in three. The rest of the time it answered from memory and sounded
 > completely confident. That's worse than not grounding at all, because it looks
 > real and isn't.
 >
-> So we split it into two calls. One grounded call whose only job is to search and
+> So I split it into two calls. One grounded call whose only job is to search and
 > find the issue — that's 4 out of 4 reliable — and it returns the queries it ran
-> and the sources it used, which we render on screen. Then a second call, with no
+> and the sources it used, which I render on screen. Then a second call, with no
 > search tool, where Gemini plays the opponent. That made it both more reliable
 > *and* faster, because the conversation turns aren't carrying a search tool
 > anymore — about 1 second instead of 2.6.
@@ -174,23 +174,23 @@ to a specific debugging story and badly to a vague one.
 
 - **Search grounding is gated behind billing.** Grounded calls returned 429
   RESOURCE_EXHAUSTED on the free tier regardless of model, while identical
-  ungrounded calls returned 200 — so we knew the key and model were fine and the
+  ungrounded calls returned 200 — so I knew the key and model were fine and the
   feature was gated. It needs the project on a paid tier; linking a billing
   account isn't enough on its own.
 - **Then grounding worked and still wasn't trustworthy.** Asking the persona to
   search and argue in one call, it only actually searched about two times in
   three — the rest it answered from memory, which looks grounded without being
-  grounded. We measured it (4 trials per variant), found prompt wording didn't
+  grounded. I measured it (4 trials per variant), found prompt wording didn't
   fix it and a bigger model cost 8-10s per turn, and split it into a dedicated
   search call plus a persona call. Now 4/4 grounded, and turns got faster
   because the persona call no longer carries the search tool.
-- **We verified the API surface instead of trusting assumptions.** The model
-  name and grounding field in our first draft were written from memory. We
+- **I verified the API surface instead of trusting assumptions.** The model
+  name and grounding field in my first draft were written from memory. I
   checked both against the live docs before debugging anything else.
 - **Gemini 3 multi-turn needed real care.** Replies come back as multiple parts
   and carry thought signatures that have to go back in the next request, so
   reading `parts[0].text` and rebuilding history as plain text would have
-  silently broken the conversation. We pass the model's parts back verbatim.
+  silently broken the conversation. I pass the model's parts back verbatim.
 - **It degrades instead of dying.** If the grounding quota is unavailable mid-demo
   the app falls back to an ungrounded round and says so, rather than showing an
   error. Same for a transient 503.
@@ -213,7 +213,7 @@ Make it public before judging or you cannot show it.
 > fake DOM and a stubbed Gemini API. They cover the grounded path, what happens
 > when the search fails, the retry on a 503, conversation-history integrity, and
 > the voice paths. They caught two real bugs today: a duplicate click listener that
-> made the microphone start and immediately stop itself, and a crash in how we read
+> made the microphone start and immediately stop itself, and a crash in how I read
 > multi-part Gemini responses."
 
 **"Did you use AI to write it?"** — Be straight; everyone did, and evasion reads worse
@@ -236,11 +236,11 @@ It's the strongest thing you have: a failure that looked like success.
 
 ## Known limitation — be ready for this one
 The coaching report is generated by the model, and models can invent a quote and
-attribute it to you. We reduced that by handing the report your exact turns and
+attribute it to you. I reduced that by handing the report your exact turns and
 forbidding any claim it cannot quote from them — measured at 7 of 8 attributed quotes
 clean across three reports, versus a clear fabrication before the change. It is reduced,
 not eliminated. If a judge asks about reliability, say that plainly: the honest answer is
-that we constrained it with the transcript and verified the improvement, and that a
+that I constrained it with the transcript and verified the improvement, and that a
 production version would verify each quote against the transcript programmatically
 before showing it.
 
